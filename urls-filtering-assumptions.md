@@ -1,3 +1,5 @@
-https://developer.*.*/api
+developer.*.*/api
 
-https://api.*.*
+api.*.*
+
+docs.*.*
