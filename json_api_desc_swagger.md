@@ -1,6 +1,6 @@
 ```json
 {
-  fetching_id: "unique value to identify the fetch"
+  _id: "unique value to identify the fetch"
   meta: {
     fetched_at: [{
   		timestamp: "timestamp where the API spec was fetched"
