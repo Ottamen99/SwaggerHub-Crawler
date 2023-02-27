@@ -21,6 +21,7 @@
   last_modified: "timestamp where the api was modified"
 	created_by: "name of the owner"
 	API_url: "url to swaggerhub repo"
+	API_url_hash: "hash of the url"
 	version: "version of the api"
 	OPENAPI_version: "version of OPENAPI used"
   API_spec: {}, "API spec"
