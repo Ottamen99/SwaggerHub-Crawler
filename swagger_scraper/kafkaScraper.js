@@ -8,6 +8,7 @@ const { Kafka } = require('kafkajs')
 const config = require('./config/config.js');
 const dbManager = require('./db/databaseManager.js');
 const {hashString, parseOwner} = require("./utils/utilityFunctions");
+const {kafkaConfig} = require("./config/config");
 
 sort_by = 'CREATED'
 order = 'ASC'
@@ -16,10 +17,7 @@ page = 0
 owner = ''
 spec = ''
 
-const kafka = new Kafka({
-    clientId: config.kafkaConfig.clientId,
-    brokers: config.kafkaConfig.brokers
-})
+kafkaConfig.setupKafka(false).catch(e => console.error(`[kafkaConfig.setupKafka] ${e.message}`, e));
 
 const topic = config.kafkaConfig.topic;
 

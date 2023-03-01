@@ -3,27 +3,26 @@ const { Kafka, Partitioners} = require('kafkajs');
 const config = require('../config/config.js');
 const apiManager = require("./apiManager");
 const utilityFunctions = require("./utilityFunctions");
+const databaseManager = require('../db/databaseManager.js');
+const kafkaManager = require('./kafkaManager.js');
+kafkaManager.setupKafka(true).catch(e => console.error(`[kafkaManager.setupKafka] ${e.message}`, e));
 
-const kafka = new Kafka({
-    clientId: config.kafkaConfig.clientId,
-    brokers: config.kafkaConfig.brokers
-});
+const producer = kafkaManager.getProducer();
 
-const producer = kafka.producer({ createPartitioner: Partitioners.DefaultPartitioner });
+const topic = config.kafkaConfig.topic.topic;
 
-const topic = config.kafkaConfig.topic;
-
-async function produceMessages(urls) {
+async function produceMessages(lstUrls) {
     await producer.connect();
-    for (const url of urls) {
+    for (const urlElem of lstUrls) {
         const message = {
-            url: url,
-            API_url_hash: utilityFunctions.hashString(url)
+            url: urlElem.url,
+            API_url_hash: utilityFunctions.hashString(urlElem.url)
         };
         await producer.send({
             topic,
             messages: [{
-                    value: JSON.stringify(message)
+                    value: JSON.stringify(message),
+                    partition: urlElem.kafkaPartition
                 }]
         });
     }
@@ -81,10 +80,34 @@ let getAPIListUrls = (sortBy, order, limit, page, owner, spec) => {
     });
 };
 
+const selectKafkaPartition = async (url) => {
+    // check if url is already in database
+    let urlInDB = await databaseManager.getUrlIfExists(url)
+    if (urlInDB) {
+        // if yes, check if it has failed before
+        let numberFailures = urlInDB.number_of_failure
+        if (numberFailures > 0) {
+            // if yes, add to kafka low priority partition for retry
+            // if retry fails, more than 3 times with same error, drop it
+            return config.kafkaConfig.priorities.LOW
+        } else {
+            // if no, add to kafka medium priority partition for update
+            return config.kafkaConfig.priorities.MEDIUM
+        }
+    } else {
+        // if not, add to kafka high priority partition
+        return config.kafkaConfig.priorities.HIGH
+    }
+}
+
 
 const retrieveURLs = async (sort_by, order, limit, page, owner, spec) => {
     let urls = await getAPIListUrls(sort_by, order, limit, page, owner, spec);
-    await produceMessages(urls).catch(err => console.error(err));
+    let lstUrls = []
+    for (const url of urls) {
+        lstUrls.push({url: url, kafkaPartition: await selectKafkaPartition(url)})
+    }
+    await produceMessages(lstUrls).catch(err => console.error(err));
 }
 
 module.exports = {
