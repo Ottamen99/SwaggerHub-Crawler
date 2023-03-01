@@ -1,17 +1,15 @@
 const axios = require('axios');
-const { Kafka, Partitioners} = require('kafkajs');
 const config = require('../config/config.js');
 const apiManager = require("./apiManager");
 const utilityFunctions = require("./utilityFunctions");
 const databaseManager = require('../db/databaseManager.js');
 const kafkaManager = require('./kafkaManager.js');
-kafkaManager.setupKafka(true).catch(e => console.error(`[kafkaManager.setupKafka] ${e.message}`, e));
-
-const producer = kafkaManager.getProducer();
+const {UrlObject} = require("../models/UrlObject");
 
 const topic = config.kafkaConfig.topic.topic;
 
 async function produceMessages(lstUrls) {
+    const producer = await kafkaManager.getProducer();
     await producer.connect();
     for (const urlElem of lstUrls) {
         const message = {
@@ -95,6 +93,13 @@ const selectKafkaPartition = async (url) => {
             return config.kafkaConfig.priorities.MEDIUM
         }
     } else {
+        // add it to database
+        const urlObject = new UrlObject()
+        urlObject.url = url
+        urlObject.number_of_failure = 0
+        urlObject.number_of_success = 0
+
+        await databaseManager.addURL(urlObject)
         // if not, add to kafka high priority partition
         return config.kafkaConfig.priorities.HIGH
     }

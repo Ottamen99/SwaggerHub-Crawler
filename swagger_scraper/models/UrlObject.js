@@ -1,4 +1,9 @@
 class UrlObject {
+
+    constructor(urlObject) {
+        Object.assign(this, urlObject);
+    }
+
     get url() {
         return this._url;
     }
@@ -40,6 +45,10 @@ class UrlObject {
 class UrlFetchObject {
     _timestamp = null;
     _response_code = null;
+
+    constructor(urlFetch) {
+        Object.assign(this, urlFetch);
+    }
 
     get timestamp() {
         return this._timestamp;

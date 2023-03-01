@@ -61,13 +61,23 @@ const getProducer = async () => {
     return kafka.producer();
 }
 
+const getConsumer = async (config) => {
+    return kafka.consumer(config);
+}
+
 const getAdmin = async () => {
     return kafka.admin();
+}
+
+const getKafka = async () => {
+    return kafka;
 }
 
 module.exports = {
     setupKafka,
     getProducer,
     logTopics,
-    describeCluster
+    describeCluster,
+    getKafka,
+    getConsumer,
 }

@@ -5,7 +5,7 @@ const PRIORITIES = {
     LOW: 2
 }
 
-exports.kafkaConfig = {
+const kafkaConfig = {
     clientId: 'my-super-test',
     brokers: ['localhost:9092'],
     groupId: 'my-group',
@@ -15,3 +15,15 @@ exports.kafkaConfig = {
         numPartitions: Object.keys(PRIORITIES).length,
     }
 };
+
+const kafkaConsumerConfig = {
+    groupId: kafkaConfig.groupId,
+    maxInFlightRequests: 1,
+    maxMessagesPerBatch: 1, // Consume 1 messages per batch
+    autoCommitInterval: 3000, // Automatically commit messages every 3 seconds
+}
+
+module.exports = {
+    kafkaConfig,
+    kafkaConsumerConfig
+}

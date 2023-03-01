@@ -15,9 +15,7 @@ class ApiObject {
     }
 
     constructor(api) {
-        // copy all properties from the api object
         Object.assign(this, api);
-        this._api = api;
     }
     get id() {
         return this._id;

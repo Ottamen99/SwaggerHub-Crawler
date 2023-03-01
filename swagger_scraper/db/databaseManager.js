@@ -39,6 +39,20 @@ exports.updateAPI = async (filter, newApi) => {
     return await db.collection('apis').updateOne(filter, { $set: newApi }, options);
 }
 
+exports.updateFetchingRefAPI = async (filter, newMeta) => {
+    const options = { upsert: false};
+    return await db.collection('apis').updateOne(filter, { $set: {_meta: newMeta} }, options);
+}
+
+exports.a = async (API_url_hash) => {
+    return await db.collection('apis').find({ _API_url_hash: API_url_hash })
+        .sort({ updatedAt: -1 })
+        .toArray(function(err, docs) {
+            if (err) throw err;
+            return docs;
+    });
+}
+
 
 // ====================== URL COLLECTION ======================
 
@@ -55,7 +69,7 @@ exports.getURLs = async () => {
 }
 
 exports.getURL = async (url) => {
-
+    return await db.collection('urls').findOne({_url: url})
 }
 
 exports.truncateURLs = async () => {
@@ -70,6 +84,11 @@ exports.updateFailureCounter = async (url) => {
 
 }
 
+exports.updateURL = async (filter, newUrl) => {
+    const options = { upsert: false};
+    return await db.collection('urls').updateOne(filter, { $set: newUrl }, options);
+}
+
 exports.addNewFetch = async (url) => {
 
 }
@@ -79,5 +98,5 @@ exports.checkIfURLExists = async (url) => {
 }
 
 exports.getUrlIfExists = async (url) => {
-
+    return await db.collection('urls').findOne({_url: url})
 }
