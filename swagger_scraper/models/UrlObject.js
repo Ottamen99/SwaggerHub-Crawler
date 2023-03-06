@@ -1,7 +1,20 @@
 class UrlObject {
+    _id = null;
+    _url = "";
+    _fetch_counter = 0;
+    _number_of_success = 0;
+    _number_of_failure = 0;
 
-    constructor(urlObject) {
-        Object.assign(this, urlObject);
+    constructor(newUrl) {
+        Object.assign(this, newUrl);
+    }
+
+    get id() {
+        return this._id;
+    }
+
+    set id(value) {
+        this._id = value;
     }
 
     get url() {
@@ -12,18 +25,13 @@ class UrlObject {
         this._url = value;
     }
 
-    get fetch() {
-        return this._fetch;
+    get fetch_counter() {
+        return this._fetch_counter;
     }
 
-    set fetch(value) {
-        this._fetch = value;
+    set fetch_counter(value) {
+        this._fetch_counter = value;
     }
-    _url = null;
-    _fetch = [];
-
-    _number_of_success = null;
-    _number_of_failure = null;
 
     get number_of_success() {
         return this._number_of_success;
@@ -42,29 +50,4 @@ class UrlObject {
     }
 }
 
-class UrlFetchObject {
-    _timestamp = null;
-    _response_code = null;
-
-    constructor(urlFetch) {
-        Object.assign(this, urlFetch);
-    }
-
-    get timestamp() {
-        return this._timestamp;
-    }
-
-    set timestamp(value) {
-        this._timestamp = value;
-    }
-
-    get response_code() {
-        return this._response_code;
-    }
-
-    set response_code(value) {
-        this._response_code = value;
-    }
-}
-
-module.exports = {UrlObject, UrlFetchObject};
+module.exports = {UrlObject};
