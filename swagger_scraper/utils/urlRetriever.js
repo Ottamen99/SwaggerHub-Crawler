@@ -5,6 +5,7 @@ const utilityFunctions = require("./utilityFunctions");
 const databaseManager = require('../db/databaseManager.js');
 const kafkaManager = require('./kafkaManager.js');
 const {UrlObject} = require("../models/UrlObject");
+const utils = require("./utilityFunctions");
 
 const topic = config.kafkaConfig.topic.topic;
 
@@ -12,10 +13,11 @@ async function produceMessages(lstUrls) {
     const producer = await kafkaManager.getProducer();
     await producer.connect();
     for (const urlElem of lstUrls) {
+        const urlObject = new UrlObject(urlElem.urlObject);
         const message = {
             realTimestamp: Date.now(),
-            url: urlElem.url,
-            API_url_hash: utilityFunctions.hashString(urlElem.url)
+            urlObject: JSON.stringify(urlObject),
+            API_url_hash: utilityFunctions.hashString(urlObject.url),
         };
         let time = Date.now();
         switch (urlElem.kafkaPartition) {
@@ -32,46 +34,18 @@ async function produceMessages(lstUrls) {
         await producer.send({
             topic,
             messages: [{
-                    timestamp: time,
-                    value: JSON.stringify(message),
-                    partition: urlElem.kafkaPartition
-                }]
+                timestamp: time,
+                value: JSON.stringify(message),
+                partition: urlElem.kafkaPartition
+            }]
         });
     }
     await producer.disconnect();
 }
 
-let buildUrl = (sortBy= undefined,
-                order= undefined,
-                limit= undefined,
-                page= undefined,
-                owner= undefined,
-                spec= undefined) => {
-    let url = 'https://app.swaggerhub.com/apiproxy/specs?'
-    if (sortBy) {
-        url += `sort=${sortBy}&`
-    }
-    if (order) {
-        url += `order=${order}&`
-    }
-    if (limit) {
-        url += `limit=${limit}&`
-    }
-    if (page) {
-        url += `page=${page}&`
-    }
-    if (owner) {
-        url += `owner=${owner}&`
-    }
-    if (spec) {
-        url += `spec=${spec}&`
-    }
-    return url
-}
-
 // get list of APIs urls
 let getAPIListUrls = (sortBy, order, limit, page, owner, spec) => {
-    let urlToGetAPIList = buildUrl(sortBy, order, limit, page, owner, spec);
+    let urlToGetAPIList = utils.buildUrl(sortBy, order, limit, page, owner, spec);
     return new Promise((resolve, reject) => {
         axios({
             method: 'get',
@@ -101,21 +75,22 @@ const selectKafkaPartition = async (url) => {
         if (numberFailures > 0) {
             // if yes, add to kafka low priority partition for retry
             // if retry fails, more than 3 times with same error, drop it
-            return config.kafkaConfig.priorities.LOW
+            return {urlObject: new UrlObject(urlInDB), kafkaPartition: config.kafkaConfig.priorities.LOW}
         } else {
             // if no, add to kafka medium priority partition for update
-            return config.kafkaConfig.priorities.MEDIUM
+            return {urlObject: new UrlObject(urlInDB), kafkaPartition: config.kafkaConfig.priorities.MEDIUM}
         }
     } else {
         // add it to database
         const urlObject = new UrlObject()
         urlObject.url = url
+        urlObject.fetch_counter = 0
         urlObject.number_of_failure = 0
         urlObject.number_of_success = 0
 
         await databaseManager.addURL(urlObject)
         // if not, add to kafka high priority partition
-        return config.kafkaConfig.priorities.HIGH
+        return {urlObject, kafkaPartition: config.kafkaConfig.priorities.HIGH}
     }
 }
 
@@ -124,12 +99,12 @@ const retrieveURLs = async (sort_by, order, limit, page, owner, spec) => {
     let urls = await getAPIListUrls(sort_by, order, limit, page, owner, spec);
     let lstUrls = []
     for (const url of urls) {
-        lstUrls.push({url: url, kafkaPartition: await selectKafkaPartition(url)})
+        const {urlObject, kafkaPartition} = await selectKafkaPartition(url)
+        lstUrls.push({urlObject, kafkaPartition})
     }
     await produceMessages(lstUrls).catch(err => console.error(err));
 }
 
 module.exports = {
-    buildUrl,
     retrieveURLs
 }

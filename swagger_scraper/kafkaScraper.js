@@ -10,6 +10,7 @@ const dbManager = require('./db/databaseManager.js');
 const {hashString, parseOwner} = require("./utils/utilityFunctions");
 const kafkaManager = require("./utils/kafkaManager");
 const {UrlObject, UrlFetchObject} = require("./models/UrlObject");
+const {FetchingObject} = require("./models/fetchingObject");
 
 sort_by = 'CREATED'
 order = 'ASC'
@@ -57,61 +58,64 @@ async function consumeApiUrls() {
     })
 
     await consumer.run({
-
-        // autoCommit: false,
         eachMessage: async ({ topic, partition, message }) => {
-
-            // console.log({
-            //     partition,
-            //     offset: message.offset,
-            //     value: message.value.toString(),
-            // })
-
             // get corresponding api from db
             const result = JSON.parse(message.value.toString())
+            const resultUrlObject = new UrlObject(JSON.parse(result.urlObject));
 
             switch (partition) {
                 case config.kafkaConfig.priorities.HIGH:
-                    console.log('Partition high priority');
-                    await fetchNewAPI(result.url, result.API_url_hash)
+                    console.log('\n\nPartition high priority');
+                    await fetchNewAPI(resultUrlObject, result.API_url_hash)
                     break;
                 case config.kafkaConfig.priorities.MEDIUM:
-                    console.log('Partition medium priority');
-                    await updateAPI(result.url, result.API_url_hash)
+                    console.log('\n\nPartition medium priority');
+                    await updateAPI(resultUrlObject, result.API_url_hash)
                     break;
                 case config.kafkaConfig.priorities.LOW:
-                    console.log('Partition low priority');
+                    console.log('\n\nPartition low priority');
                     break;
             }
         }
     });
 }
 
-const fetchNewAPI = async (apiUrl, apiUrlHash) => {
-    let {apiObject, queryResult} = await updateInformationsUrl(apiUrl, apiUrlHash);
+async function createFetchObjAndInsertDb(apiObject, apiUrlObject, queryResult) {
+    const fetchObject = new FetchingObject()
+    fetchObject.API_reference = apiObject.API_reference
+    fetchObject.url_id = apiUrlObject.id; // ID of the URL
+    fetchObject.timestamp = new Date().toISOString();
+    fetchObject.headers = queryResult.headers;
+    fetchObject.response_code = queryResult.status;
+    fetchObject.still_alive = queryResult.status === 200;
 
-    const apiFromDb = await dbManager.getAPI(apiObject.API_url_hash);
-    const apiFromDbObject = new ApiObject(apiFromDb);
+    // Add to database
+    const inserted = await dbManager.addFetch(fetchObject);
+    return inserted.insertedId
+}
+
+const fetchNewAPI = async (apiUrlObject, apiUrlHash) => {
+    let {apiObject, queryResult} = await getApiFromSwagger(apiUrlHash);
+    await updateInformationsUrl(apiUrlObject.url, queryResult.status);
+
     appendQueryResults(apiObject, queryResult);
 
     console.log('No changes in API spec');
-    // Append fetched_at data to meta
-    apiObject.meta.fetched_at.push({
-        timestamp: new Date().toISOString(),
-        still_alive: queryResult.status === 200,
-        fetching_ref: apiFromDbObject.id,
-    })
+    apiObject.fetching_reference = await createFetchObjAndInsertDb(apiObject, apiUrlObject, queryResult);
+
     // Update API object in db
     const filter = { _API_url_hash: apiObject.API_url_hash };
     const update = await dbManager.updateAPI(filter, apiObject);
     console.log(`${update.matchedCount} document(s) matched the filter criteria.`);
     console.log(`${update.modifiedCount} document(s) were updated.`);
 
-
     await new Promise((resolve) => setTimeout(resolve, utils.randomDelay(500, 5000)));
 }
 
 function appendQueryResults(apiObject, queryResult) {
+
+    apiObject.API_reference = utils.getBaseURL(apiObject.API_url)
+
     apiObject.API_spec = queryResult.data
     apiObject.API_spec_hash = hashString(JSON.stringify(apiObject.API_spec));
 
@@ -137,27 +141,12 @@ function appendQueryResults(apiObject, queryResult) {
     }
 }
 
-async function updateInformationsUrl(apiUrl, apiUrlHash) {
+async function updateInformationsUrl(apiUrl, queryResultStatus) {
     const url = await dbManager.getURL(apiUrl);
     const urlObject = new UrlObject(url);
 
-    // Get API object from db and convert it to ApiObject
-    const api = await dbManager.getAPI(apiUrlHash);
-    let apiObject = new ApiObject(api);
-    const queryResult = await axios.get(apiUrl).then((res) => {
-        return {
-            data: res.data,
-            headers: res.headers,
-            status: res.status
-        }
-    })
-
-    let urlFetch = new UrlFetchObject()
-    urlFetch.timestamp = new Date().toISOString();
-    urlFetch.response_code = queryResult.status;
-    urlObject.fetch.push(urlFetch);
-
-    if (queryResult.status !== 200) {
+    urlObject.fetch_counter += 1;
+    if (queryResultStatus !== 200) {
         urlObject.number_of_failure += 1;
     } else {
         urlObject.number_of_success += 1;
@@ -168,48 +157,45 @@ async function updateInformationsUrl(apiUrl, apiUrlHash) {
     const update_url = await dbManager.updateURL(filter_url, urlObject);
     console.log(`[URL] => ${update_url.matchedCount} document(s) matched the filter criteria.`);
     console.log(`[URL] => ${update_url.modifiedCount} document(s) were updated.`);
+}
+
+async function getApiFromSwagger(apiUrlHash){
+    // Get API object from db and convert it to ApiObject
+    const api = await dbManager.getAPI(apiUrlHash);
+    let apiObject = new ApiObject(api);
+    const queryResult = await axios.get(apiObject.API_url).then((res) => {
+        return {
+            data: res.data,
+            headers: res.headers,
+            status: res.status
+        }
+    })
+
     return {apiObject, queryResult};
 }
 
-const updateAPI = async (apiUrl, apiUrlHash) => {
-    let {apiObject, queryResult} = await updateInformationsUrl(apiUrl, apiUrlHash);
+const updateAPI = async (apiUrlObject, apiUrlHash) => {
+    let {apiObject, queryResult} = await getApiFromSwagger(apiUrlHash);
+    const apiSwaggerObject = apiObject;
+    await updateInformationsUrl(apiUrlObject.url, queryResult.status);
 
-    const apiFromDb = await dbManager.a(apiObject.API_url_hash);
+    const apiFromDb = await dbManager.getLastUpdatedApi(apiSwaggerObject.API_url_hash);
     const apiFromDbObject = new ApiObject(apiFromDb[apiFromDb.length - 1]);
-    appendQueryResults(apiObject, queryResult);
+    appendQueryResults(apiSwaggerObject, queryResult);
+
+    apiSwaggerObject.fetching_reference = await createFetchObjAndInsertDb(apiSwaggerObject, apiUrlObject, queryResult);
 
     // Check if API spec has changed
-    if (apiObject.API_spec_hash !== apiFromDbObject.API_spec_hash) {
+    if (apiSwaggerObject.API_spec_hash !== apiFromDbObject.API_spec_hash) {
         console.log('Changes in API spec');
 
-        apiObject.meta.fetched_at = apiFromDbObject.meta.fetched_at;
-        // Append fetched_at data to meta
-        apiObject.meta.fetched_at.push({
-            timestamp: new Date().toISOString(),
-            still_alive: queryResult.status === 200,
-            fetching_ref: "",
-        })
-        apiObject.id = null;
         // Insert API object in db
-        const insert = await dbManager.addAPI(apiObject);
+        apiSwaggerObject.id = null;
+        const insert = await dbManager.addAPI(apiSwaggerObject);
         console.log(`${insert.insertedId} document(s) was/were inserted.`);
-
-        const newMeta = apiObject.meta;
-        // get last element of fetched_at array
-
-        newMeta.fetched_at[newMeta.fetched_at.length - 1].fetching_ref = insert.insertedId;
-        // Update API object in db
-        const filter = { _id: insert.insertedId };
-        const update = await dbManager.updateFetchingRefAPI(filter, newMeta);
-        console.log(`${update.matchedCount} document(s) matched the filter criteria.`);
     } else {
         console.log('No changes in API spec');
-        // Append fetched_at data to meta
-        apiFromDbObject.meta.fetched_at.push({
-            timestamp: new Date().toISOString(),
-            still_alive: queryResult.status === 200,
-            fetching_ref: apiFromDbObject.id,
-        })
+
         // Update API object in db
         const filter = { _id: apiFromDbObject.id };
         const update = await dbManager.updateAPI(filter, apiFromDbObject);
@@ -218,16 +204,6 @@ const updateAPI = async (apiUrl, apiUrlHash) => {
     }
 }
 
-urlRetriever.retrieveURLs(sort_by, order, limit, page, owner, spec)
-    .then(() => {
-        console.log('Finished');
-        process.exit(0);
-    })
-    .catch((err) => {
-        console.log(err);
-        process.exit(1);
-});
-
-// consumeApiUrls().catch((err) => {
-//     console.log(err);
-// })
+consumeApiUrls().catch((err) => {
+    console.log(err);
+})

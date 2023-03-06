@@ -1,4 +1,19 @@
 class ApiObject {
+    get fetching_reference() {
+        return this._fetching_reference;
+    }
+
+    set fetching_reference(value) {
+        this._fetching_reference = value;
+    }
+
+    get API_reference() {
+        return this._API_reference;
+    }
+
+    set API_reference(value) {
+        this._API_reference = value;
+    }
     get api() {
         return this._api;
     }
@@ -113,8 +128,9 @@ class ApiObject {
         this._API_spec_hash = value;
     }
     _id = null;
+    _fetching_reference = null;
+    _API_reference = null;
     _meta = {
-        fetched_at: [],
         server: {},
         is_valid_JSON_spec: null,
     }

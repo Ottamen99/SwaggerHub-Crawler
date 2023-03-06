@@ -44,7 +44,7 @@ exports.updateFetchingRefAPI = async (filter, newMeta) => {
     return await db.collection('apis').updateOne(filter, { $set: {_meta: newMeta} }, options);
 }
 
-exports.a = async (API_url_hash) => {
+exports.getLastUpdatedApi = async (API_url_hash) => {
     return await db.collection('apis').find({ _API_url_hash: API_url_hash })
         .sort({ updatedAt: -1 })
         .toArray(function(err, docs) {
@@ -99,4 +99,23 @@ exports.checkIfURLExists = async (url) => {
 
 exports.getUrlIfExists = async (url) => {
     return await db.collection('urls').findOne({_url: url})
+}
+
+
+// ====================== FETCH COLLECTION ======================
+
+exports.addFetch = async (newFetch) => {
+    return await db.collection('fetches').insertOne(newFetch);
+}
+
+exports.addFetches = async (newFetches) => {
+    return await db.collection('fetches').insertMany(newFetches);
+}
+
+exports.getFetches = async () => {
+    return await db.collection('fetches').find().toArray();
+}
+
+exports.getFetch = async (fetchRef) => {
+
 }
