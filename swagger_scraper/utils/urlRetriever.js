@@ -18,6 +18,7 @@ async function produceMessages(lstUrls) {
             realTimestamp: Date.now(),
             urlObject: JSON.stringify(urlObject),
             API_url_hash: utilityFunctions.hashString(urlObject.url),
+            // API_url_hash: utilityFunctions.hashString("https://api.swaggerhub.com/apis/fehguy/tesla/2.666.1"),
         };
         let time = Date.now();
         switch (urlElem.kafkaPartition) {
@@ -67,6 +68,9 @@ let getAPIListUrls = (sortBy, order, limit, page, owner, spec) => {
 };
 
 const selectKafkaPartition = async (url) => {
+
+    // url = "https://api.swaggerhub.com/apis/fehguy/tesla/2.666.1"
+
     // check if url is already in database
     let urlInDB = await databaseManager.getUrlIfExists(url)
     if (urlInDB) {
@@ -84,6 +88,7 @@ const selectKafkaPartition = async (url) => {
         // add it to database
         const urlObject = new UrlObject()
         urlObject.url = url
+        // urlObject.url = "https://api.swaggerhub.com/apis/fehguy/tesla/2.666.1"
         urlObject.fetch_counter = 0
         urlObject.number_of_failure = 0
         urlObject.number_of_success = 0

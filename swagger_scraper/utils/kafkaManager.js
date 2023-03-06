@@ -1,5 +1,7 @@
 const { Kafka } = require('kafkajs');
 const config = require("../config/config");
+const {UrlObject} = require("../models/UrlObject");
+const utilityFunctions = require("./utilityFunctions");
 
 const kafka = new Kafka({
     clientId: config.kafkaConfig.clientId,
@@ -73,6 +75,29 @@ const getKafka = async () => {
     return kafka;
 }
 
+const produceInLowPriority = async (urlObject, timeout, retryNumber, isUpdate) => {
+    const producer = await getProducer();
+    await producer.connect();
+    const message = {
+        isUpdate: isUpdate,
+        retryNumber: retryNumber,
+        timeoutRetry: timeout,
+        realTimestamp: Date.now(),
+        urlObject: JSON.stringify(urlObject),
+        API_url_hash: utilityFunctions.hashString(urlObject.url),
+    };
+    let time = Date.now() + timeout
+    await producer.send({
+        topic: config.kafkaConfig.topic.topic,
+        messages: [{
+            timestamp: time,
+            value: JSON.stringify(message),
+            partition: config.kafkaConfig.priorities.LOW
+        }]
+    });
+    await producer.disconnect();
+}
+
 module.exports = {
     setupKafka,
     getProducer,
@@ -80,4 +105,5 @@ module.exports = {
     describeCluster,
     getKafka,
     getConsumer,
+    produceInLowPriority
 }

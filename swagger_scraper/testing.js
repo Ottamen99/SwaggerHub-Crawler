@@ -2,7 +2,7 @@ const urlRetriever = require("./utils/urlRetriever");
 
 sort_by = 'CREATED'
 order = 'ASC'
-limit = 11
+limit = 1
 page = 0
 owner = ''
 spec = ''

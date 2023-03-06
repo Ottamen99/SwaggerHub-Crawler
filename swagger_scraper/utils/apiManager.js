@@ -5,10 +5,13 @@ const utilityFunction = require("./utilityFunctions");
 
 const createAPIObject = (api) => {
     let apiObject = new ApiObject();
+    apiObject.API_reference = utilityFunction.getBaseURL(api.properties[0].url);
     apiObject.name = api.name;
     apiObject.description = api.description;
     apiObject.API_url = api.properties[0].url;
+    // apiObject.API_url = "https://api.swaggerhub.com/apis/fehguy/tesla/2.666.1"
     apiObject.API_url_hash = utilityFunction.hashString(api.properties[0].url);
+    // apiObject.API_url_hash = utilityFunction.hashString("https://api.swaggerhub.com/apis/fehguy/tesla/2.666.1");
     apiObject.version = api.properties[1].value;
     apiObject.created_at = api.properties[2].value;
     apiObject.last_modified = api.properties[3].value;

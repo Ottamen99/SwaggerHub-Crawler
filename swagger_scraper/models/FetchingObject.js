@@ -1,4 +1,11 @@
 class FetchingObject {
+    get error() {
+        return this._error;
+    }
+
+    set error(value) {
+        this._error = value;
+    }
     _id = null;
     _fetching_reference = "";
     _API_reference = "";
@@ -7,6 +14,7 @@ class FetchingObject {
     _headers = null;
     _response_code = "";
     _still_alive = null;
+    _error = null;
 
     get id() {
         return this._id;

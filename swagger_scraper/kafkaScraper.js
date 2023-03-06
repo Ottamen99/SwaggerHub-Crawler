@@ -1,23 +1,13 @@
 const axios = require("axios");
-const urlRetriever = require("./utils/urlRetriever.js");
-const mkdirp = require("mkdirp");
 const {ApiObject} = require("./models/ApiObject");
 const utils = require("./utils/utilityFunctions");
-const tqdm = require("tqdm");
-const { Kafka } = require('kafkajs')
 const config = require('./config/config.js');
 const dbManager = require('./db/databaseManager.js');
 const {hashString, parseOwner} = require("./utils/utilityFunctions");
 const kafkaManager = require("./utils/kafkaManager");
-const {UrlObject, UrlFetchObject} = require("./models/UrlObject");
+const {UrlObject} = require("./models/UrlObject");
 const {FetchingObject} = require("./models/fetchingObject");
-
-sort_by = 'CREATED'
-order = 'ASC'
-limit = 1
-page = 0
-owner = ''
-spec = ''
+const {LOW_PRIORITY_TIMEOUT} = require("./config/constants");
 
 // kafkaManager.setupKafka(true).then(() => {
 //     console.log('Kafka setup complete');
@@ -61,19 +51,21 @@ async function consumeApiUrls() {
         eachMessage: async ({ topic, partition, message }) => {
             // get corresponding api from db
             const result = JSON.parse(message.value.toString())
-            const resultUrlObject = new UrlObject(JSON.parse(result.urlObject));
 
             switch (partition) {
                 case config.kafkaConfig.priorities.HIGH:
+                    const resultUrlObjectHigh = new UrlObject(JSON.parse(result.urlObject));
                     console.log('\n\nPartition high priority');
-                    await fetchNewAPI(resultUrlObject, result.API_url_hash)
+                    await fetchNewAPI(resultUrlObjectHigh, result.API_url_hash)
                     break;
                 case config.kafkaConfig.priorities.MEDIUM:
+                    const resultUrlObjectMedium = new UrlObject(JSON.parse(result.urlObject));
                     console.log('\n\nPartition medium priority');
-                    await updateAPI(resultUrlObject, result.API_url_hash)
+                    await updateAPI(resultUrlObjectMedium, result.API_url_hash, 0)
                     break;
                 case config.kafkaConfig.priorities.LOW:
                     console.log('\n\nPartition low priority');
+                    await handleLowPriority(result);
                     break;
             }
         }
@@ -85,23 +77,32 @@ async function createFetchObjAndInsertDb(apiObject, apiUrlObject, queryResult) {
     fetchObject.API_reference = apiObject.API_reference
     fetchObject.url_id = apiUrlObject.id; // ID of the URL
     fetchObject.timestamp = new Date().toISOString();
-    fetchObject.headers = queryResult.headers;
-    fetchObject.response_code = queryResult.status;
-    fetchObject.still_alive = queryResult.status === 200;
+    if (queryResult.headers) {
+        fetchObject.headers = queryResult.headers;
+        fetchObject.response_code = queryResult.status;
+        fetchObject.still_alive = queryResult.status === 200;
+    } else {
+        fetchObject.error = queryResult.error;
+        fetchObject.response_code = queryResult.status;
+        fetchObject.still_alive = false;
+    }
 
     // Add to database
     const inserted = await dbManager.addFetch(fetchObject);
     return inserted.insertedId
 }
 
-const fetchNewAPI = async (apiUrlObject, apiUrlHash) => {
-    let {apiObject, queryResult} = await getApiFromSwagger(apiUrlHash);
-    await updateInformationsUrl(apiUrlObject.url, queryResult.status);
+const fetchNewAPI = async (apiUrlObject, apiUrlHash, retries) => {
+    let {apiObject, queryResult} = await getApiFromSwagger(apiUrlHash, retries);
+    apiObject.fetching_reference = await createFetchObjAndInsertDb(apiObject, apiUrlObject, queryResult);
+    if (queryResult.error) {
+        return false; // API not found
+    }
+    await updateInfoUrl(apiUrlObject.url, queryResult.status);
 
     appendQueryResults(apiObject, queryResult);
 
     console.log('No changes in API spec');
-    apiObject.fetching_reference = await createFetchObjAndInsertDb(apiObject, apiUrlObject, queryResult);
 
     // Update API object in db
     const filter = { _API_url_hash: apiObject.API_url_hash };
@@ -110,6 +111,8 @@ const fetchNewAPI = async (apiUrlObject, apiUrlHash) => {
     console.log(`${update.modifiedCount} document(s) were updated.`);
 
     await new Promise((resolve) => setTimeout(resolve, utils.randomDelay(500, 5000)));
+
+    return true; // API added successfully
 }
 
 function appendQueryResults(apiObject, queryResult) {
@@ -141,7 +144,7 @@ function appendQueryResults(apiObject, queryResult) {
     }
 }
 
-async function updateInformationsUrl(apiUrl, queryResultStatus) {
+async function updateInfoUrl(apiUrl, queryResultStatus) {
     const url = await dbManager.getURL(apiUrl);
     const urlObject = new UrlObject(url);
 
@@ -159,31 +162,59 @@ async function updateInformationsUrl(apiUrl, queryResultStatus) {
     console.log(`[URL] => ${update_url.modifiedCount} document(s) were updated.`);
 }
 
-async function getApiFromSwagger(apiUrlHash){
+async function getApiFromSwagger(apiUrlHash, retries) {
     // Get API object from db and convert it to ApiObject
     const api = await dbManager.getAPI(apiUrlHash);
     let apiObject = new ApiObject(api);
-    const queryResult = await axios.get(apiObject.API_url).then((res) => {
-        return {
-            data: res.data,
-            headers: res.headers,
-            status: res.status
+    try {
+        const queryResult = await axios.get(apiObject.API_url).then((res) => {
+            return {
+                data: res.data,
+                headers: res.headers,
+                status: res.status
+            }
+        })
+        return {apiObject, queryResult};
+    } catch (err) {
+        console.log("[ERROR] 404");
+        if (err.code === "ERR_INVALID_URL") {
+            const urlObject = new UrlObject(await dbManager.getURL(apiObject.API_url));
+            const isUpdate = !!apiObject.fetching_reference;
+            await kafkaManager.produceInLowPriority(urlObject, LOW_PRIORITY_TIMEOUT * (retries + 1), retries + 1, isUpdate)
+            return {apiObject, queryResult: {status: 404, error: err}};
+        } else if (err.code === "ERR_BAD_REQUEST") {
+            const urlObject = new UrlObject(await dbManager.getURL(apiObject.API_url));
+            const isUpdate = !!apiObject.fetching_reference;
+            await kafkaManager.produceInLowPriority(urlObject, LOW_PRIORITY_TIMEOUT * (retries + 1), retries + 1, isUpdate)
+            return {apiObject: apiObject, queryResult: {status: 400, error: err.code}};
         }
-    })
+        return {apiObject: apiObject, queryResult: {status: 500, error: err.code}};
+    }
 
-    return {apiObject, queryResult};
+    // handling 404 errors
+    // let timeout = 5000;
+    // while (queryResult.status === 404 && retries < 3) {
+    //     // insert in LOW priority queue and add timeout
+    //     const isUpdate = !!apiObject.fetching_reference;
+    //     // await kafkaManager.produceInLowPriority(urlObject, timeout, )
+    //     retries++;
+    //     timeout *= 2;
+    // }
 }
 
-const updateAPI = async (apiUrlObject, apiUrlHash) => {
-    let {apiObject, queryResult} = await getApiFromSwagger(apiUrlHash);
+const updateAPI = async (apiUrlObject, apiUrlHash, retries) => {
+    let {apiObject, queryResult} = await getApiFromSwagger(apiUrlHash, retries);
+    apiObject.fetching_reference = await createFetchObjAndInsertDb(apiObject, apiUrlObject, queryResult);
+    if (queryResult.error) {
+        return false; // return false if the api has not been found
+    }
     const apiSwaggerObject = apiObject;
-    await updateInformationsUrl(apiUrlObject.url, queryResult.status);
+    await updateInfoUrl(apiUrlObject.url, queryResult.status);
 
     const apiFromDb = await dbManager.getLastUpdatedApi(apiSwaggerObject.API_url_hash);
     const apiFromDbObject = new ApiObject(apiFromDb[apiFromDb.length - 1]);
     appendQueryResults(apiSwaggerObject, queryResult);
 
-    apiSwaggerObject.fetching_reference = await createFetchObjAndInsertDb(apiSwaggerObject, apiUrlObject, queryResult);
 
     // Check if API spec has changed
     if (apiSwaggerObject.API_spec_hash !== apiFromDbObject.API_spec_hash) {
@@ -201,6 +232,30 @@ const updateAPI = async (apiUrlObject, apiUrlHash) => {
         const update = await dbManager.updateAPI(filter, apiFromDbObject);
         console.log(`${update.matchedCount} document(s) matched the filter criteria.`);
         console.log(`${update.modifiedCount} document(s) were updated.`);
+    }
+
+    return true; // return true if the api has been updated
+}
+
+const handleLowPriority = async (consumedMessage) => {
+    const apiUrlObject = new UrlObject(JSON.parse(consumedMessage.urlObject));
+        if (consumedMessage.retryNumber <= 3) {
+            // await timout
+            console.log(`[URL] => ${apiUrlObject.url} is dead, retrying in ${consumedMessage.timeoutRetry} ms`)
+            await new Promise(resolve => setTimeout(resolve, consumedMessage.timeoutRetry));
+            // this url can be retried again
+            switch (consumedMessage.isUpdate) {
+                case true:
+                    await updateAPI(apiUrlObject, consumedMessage.API_url_hash, consumedMessage.retryNumber);
+                    break;
+                case false:
+                    await fetchNewAPI(apiUrlObject, consumedMessage.API_url_hash, consumedMessage.retryNumber);
+                    break;
+            }
+    } else {
+        // this url can't be retried anymore
+        // it will be flagged as dead
+            console.log(`[URL] => ${apiUrlObject.url} is dead`);
     }
 }
 
