@@ -13,12 +13,26 @@ async function produceMessages(lstUrls) {
     await producer.connect();
     for (const urlElem of lstUrls) {
         const message = {
+            realTimestamp: Date.now(),
             url: urlElem.url,
             API_url_hash: utilityFunctions.hashString(urlElem.url)
         };
+        let time = Date.now();
+        switch (urlElem.kafkaPartition) {
+            case config.kafkaConfig.priorities.HIGH:
+                time = 1;
+                break;
+            case config.kafkaConfig.priorities.MEDIUM:
+                // date now minus 100 years
+                time = 315360000000;
+                break;
+            case config.kafkaConfig.priorities.LOW:
+                time = Date.now();
+        }
         await producer.send({
             topic,
             messages: [{
+                    timestamp: time,
                     value: JSON.stringify(message),
                     partition: urlElem.kafkaPartition
                 }]

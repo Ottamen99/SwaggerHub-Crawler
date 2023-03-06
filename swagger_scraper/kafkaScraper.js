@@ -47,10 +47,17 @@ async function consumeApiUrls() {
     await consumer.subscribe({
         topic: topic,
         fromBeginning: true,
+        partitions: [config.kafkaConfig.priorities.HIGH],
+        partitionsAssigners: [
+            async ({ partitions }) => {
+                return partitions.sort((a, b) => a.partition - b.partition)
+            },
+        ],
+        partitionsConsumedConcurrently: 1,
     })
 
     await consumer.run({
-        partitionsConsumedConcurrently: 1,
+
         // autoCommit: false,
         eachMessage: async ({ topic, partition, message }) => {
 
@@ -211,16 +218,16 @@ const updateAPI = async (apiUrl, apiUrlHash) => {
     }
 }
 
-// urlRetriever.retrieveURLs(sort_by, order, limit, page, owner, spec)
-//     .then(() => {
-//         console.log('Finished');
-//         process.exit(0);
-//     })
-//     .catch((err) => {
-//         console.log(err);
-//         process.exit(1);
-// });
+urlRetriever.retrieveURLs(sort_by, order, limit, page, owner, spec)
+    .then(() => {
+        console.log('Finished');
+        process.exit(0);
+    })
+    .catch((err) => {
+        console.log(err);
+        process.exit(1);
+});
 
-consumeApiUrls().catch((err) => {
-    console.log(err);
-})
+// consumeApiUrls().catch((err) => {
+//     console.log(err);
+// })
