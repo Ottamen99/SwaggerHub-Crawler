@@ -16,14 +16,22 @@ const kafkaConfig = {
     }
 };
 
-const kafkaConsumerConfig = {
+const kafkaMainConsumerConfig = {
     groupId: kafkaConfig.groupId,
-    maxInFlightRequests: 1,
-    maxMessagesPerBatch: 1, // Consume 1 messages per batch
-    autoCommitInterval: 3000, // Automatically commit messages every 3 seconds
+    partitionsConsumedConcurrently: 1,
+    topic: kafkaConfig.topic.topic,
+    partitionsConsumed: [PRIORITIES.HIGH, PRIORITIES.MEDIUM] // assign partitions 0 and 1 to this consumer
+}
+
+const kafkaRetryConsumerConfig = {
+    groupId: kafkaConfig.groupId,
+    partitionsConsumedConcurrently: 1,
+    topic: kafkaConfig.topic.topic,
+    partitionsConsumed: [PRIORITIES.LOW] // assign partition 2 to this consumer
 }
 
 module.exports = {
     kafkaConfig,
-    kafkaConsumerConfig
+    kafkaMainConsumerConfig,
+    kafkaRetryConsumerConfig,
 }

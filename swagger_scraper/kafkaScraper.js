@@ -18,36 +18,48 @@ const topic = config.kafkaConfig.topic.topic;
 
 
 // perform any cleanup or finalization tasks before stopping the app
-function cleanup() {
+async function cleanup() {
     console.log('Performing cleanup tasks before stopping the app...');
     // do something, like close database connections, save data, etc.
+    await Promise.all([mainConsumer.disconnect(), lowPriorityConsumer.disconnect()]);
     process.exit();
 }
 
 // listen for the SIGINT signal
 process.on('SIGINT', function() {
     console.log('Received SIGINT signal, stopping the app...');
-    cleanup();
+    cleanup().catch(err => {
+        console.log('Error during cleanup: ', err);
+    });
 });
+
+let mainConsumer;
+let lowPriorityConsumer;
+
+const startConsumers = async () => {
+    mainConsumer = await kafkaManager.getConsumer(config.kafkaMainConsumerConfig);
+    lowPriorityConsumer = await kafkaManager.getConsumer(config.kafkaRetryConsumerConfig);
+
+    await Promise.all([mainConsumer.connect(), lowPriorityConsumer.connect()]);
+    console.log('[Consumers connected]');
+
+    await Promise.all([mainConsumer.subscribe({
+        topic: topic,
+        fromBeginning: true,
+        partitions: [config.kafkaConfig.priorities.HIGH]
+    }), lowPriorityConsumer.subscribe({
+        topic: topic,
+        fromBeginning: true,
+        partitions: [config.kafkaConfig.priorities.LOW],
+    })]);
+    console.log('[Consumers subscribed]');
+
+    await Promise.all([consumeApiUrls(), retryConsumeApiUrls()]);
+}
 
 
 async function consumeApiUrls() {
-    const consumer = await kafkaManager.getConsumer(config.kafkaConsumerConfig)
-    await consumer.connect();
-
-    await consumer.subscribe({
-        topic: topic,
-        fromBeginning: true,
-        partitions: [config.kafkaConfig.priorities.HIGH],
-        partitionsAssigners: [
-            async ({ partitions }) => {
-                return partitions.sort((a, b) => a.partition - b.partition)
-            },
-        ],
-        partitionsConsumedConcurrently: 1,
-    })
-
-    await consumer.run({
+    await mainConsumer.run({
         eachMessage: async ({ topic, partition, message }) => {
             // get corresponding api from db
             const result = JSON.parse(message.value.toString())
@@ -62,10 +74,6 @@ async function consumeApiUrls() {
                     const resultUrlObjectMedium = new UrlObject(JSON.parse(result.urlObject));
                     console.log('\n\nPartition medium priority');
                     await updateAPI(resultUrlObjectMedium, result.API_url_hash, 0)
-                    break;
-                case config.kafkaConfig.priorities.LOW:
-                    console.log('\n\nPartition low priority');
-                    await handleLowPriority(result);
                     break;
             }
         }
@@ -190,16 +198,6 @@ async function getApiFromSwagger(apiUrlHash, retries) {
         }
         return {apiObject: apiObject, queryResult: {status: 500, error: err.code}};
     }
-
-    // handling 404 errors
-    // let timeout = 5000;
-    // while (queryResult.status === 404 && retries < 3) {
-    //     // insert in LOW priority queue and add timeout
-    //     const isUpdate = !!apiObject.fetching_reference;
-    //     // await kafkaManager.produceInLowPriority(urlObject, timeout, )
-    //     retries++;
-    //     timeout *= 2;
-    // }
 }
 
 const updateAPI = async (apiUrlObject, apiUrlHash, retries) => {
@@ -226,7 +224,7 @@ const updateAPI = async (apiUrlObject, apiUrlHash, retries) => {
         console.log(`${insert.insertedId} document(s) was/were inserted.`);
     } else {
         console.log('No changes in API spec');
-
+        apiFromDbObject.fetching_reference = apiSwaggerObject.fetching_reference;
         // Update API object in db
         const filter = { _id: apiFromDbObject.id };
         const update = await dbManager.updateAPI(filter, apiFromDbObject);
@@ -259,6 +257,21 @@ const handleLowPriority = async (consumedMessage) => {
     }
 }
 
-consumeApiUrls().catch((err) => {
+const retryConsumeApiUrls = async () => {
+    await lowPriorityConsumer.run({
+        eachMessage: async ({ topic, partition, message }) => {
+            // get corresponding api from db
+            const result = JSON.parse(message.value.toString())
+            switch (partition) {
+                case config.kafkaConfig.priorities.LOW:
+                    console.log('\n\nPartition low priority');
+                    await handleLowPriority(result);
+                    break;
+            }
+        }
+    });
+}
+
+startConsumers().catch((err) => {
     console.log(err);
 })

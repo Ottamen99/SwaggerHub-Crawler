@@ -7,7 +7,6 @@ class FetchingObject {
         this._error = value;
     }
     _id = null;
-    _fetching_reference = "";
     _API_reference = "";
     _url_id = "";
     _timestamp = "";
@@ -22,14 +21,6 @@ class FetchingObject {
 
     set id(value) {
         this._id = value;
-    }
-
-    get fetching_reference() {
-        return this._fetching_reference;
-    }
-
-    set fetching_reference(value) {
-        this._fetching_reference = value;
     }
 
     get API_reference() {

@@ -49,16 +49,14 @@ const run = async () => {
     })
 }
 
-const countMessagesInQueue = async () => {
+async function countMessagesInQueue() {
     await consumer.connect()
-    await consumer.subscribe({ topic, fromBeginning: true })
+    await consumer.subscribe({ topic: topic, fromBeginning: true })
 
-    const position = await consumer.position({ topic, partition })
-    const earliestOffsets = await consumer.queryOffsets([{ topic, partition, time: 0 }])
-    const earliestOffset = earliestOffsets[topic][partition][0]
-    const messageCount = position - earliestOffset
+    // ...consume messages...
 
-    console.log(`There are ${messageCount} messages in the queue for topic "${topic}" and partition ${partition}.`)
+    const { paused } = consumer.commi()
+    console.log(`Number of messages in queue: ${paused.length}`)
 
     await consumer.disconnect()
 }
