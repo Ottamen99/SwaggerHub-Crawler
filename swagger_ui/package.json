@@ -1,0 +1,19 @@
+{
+  "name": "swagger_ui",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Ottavio Buonomo",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "kafkajs": "2.2.4",
+    "nodemon": "^2.0.21",
+    "socket.io": "^4.6.1"
+  }
+}
