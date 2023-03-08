@@ -3,9 +3,7 @@ const {BASE_SWAGGER_PROXY_URL} = require("../config/constants");
 
 // create delay function with random delay
 exports.randomDelay = (min, max) => {
-    const delay = Math.floor(Math.random() * (max - min + 1) + min);
-    console.log(`Delaying for ${delay} ms...`)
-    return delay;
+    return Math.floor(Math.random() * (max - min + 1) + min);
 }
 
 // create function that hash a string with sha256

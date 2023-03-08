@@ -9,6 +9,11 @@ const mkdirp = require('mkdirp');
 const tqdm = require("tqdm");
 const dir = './apis';
 const request = require('request');
+const Stopwatch = require('statman-stopwatch');
+
+const sw = new Stopwatch();
+
+
 let getTotalNumberOfAPIs = () => {
     const url = 'https://app.swaggerhub.com/apiproxy/specs?limit=1&page=1';
     const options = {
@@ -59,15 +64,22 @@ let getAPIListUrls = (sortBy, order, limit, page) => {
 }
 
 // download all APIs to a folder named "apis"
-const delay = async (ms = 500) =>
+const delay = async (ms = 75) =>
     new Promise(resolve => setTimeout(resolve, ms))
 
 function task(url) {
     request(url, {json: true}, (err, res, body) => {
         // if http code is 403 count number of 403s
         if (res.statusCode === 403) {
+            sw.stop()
             console.log("Forbidden 403")
-            return err
+            // time elapsed in seconds and minutes single log
+            console.log(`Time elapsed: ${sw.read() / 1000} seconds`)
+            console.log(`Number of APIs downloaded: ${count}`)
+
+            sw.reset()
+            process.exit(1)
+            // return err
         }
         if (err) { return console.log(err); }
         let apiName
@@ -88,6 +100,7 @@ function task(url) {
                 apiVersion = "1.0.0"
             }
             apiVersion = apiVersion.replace(/[^a-zA-Z0-9]/g, '_')
+            count += 1
         } catch (error) {
             console.log(apiVersion)
             console.log(error)
@@ -108,14 +121,18 @@ let downloadAllAPIs = async (apiListUrls) => {
         await delay()
     }
 }
-
+let count = 0
 async function downloadNpages(n) {
+    sw.start();
     for (let i = 1; i < n; i++) {
         await getAPIListUrls(sort_by, order, limit, i).then(async (res) => {
             let apiListUrls = res
             await downloadAllAPIs(apiListUrls)
         })
     }
+    sw.stop()
+    console.log(`Time elapsed: ${sw.read() / 1000} seconds`)
+    console.log(`Number of APIs downloaded: ${count}`)
 }
 
-downloadNpages(1)
+downloadNpages(100)

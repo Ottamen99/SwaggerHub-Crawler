@@ -118,7 +118,7 @@ const fetchNewAPI = async (apiUrlObject, apiUrlHash, retries) => {
     console.log(`${update.matchedCount} document(s) matched the filter criteria.`);
     console.log(`${update.modifiedCount} document(s) were updated.`);
 
-    await new Promise((resolve) => setTimeout(resolve, utils.randomDelay(500, 5000)));
+    await new Promise((resolve) => setTimeout(resolve, 250));
 
     return true; // API added successfully
 }
@@ -184,19 +184,26 @@ async function getApiFromSwagger(apiUrlHash, retries) {
         })
         return {apiObject, queryResult};
     } catch (err) {
-        console.log("[ERROR] 404");
-        if (err.code === "ERR_INVALID_URL") {
-            const urlObject = new UrlObject(await dbManager.getURL(apiObject.API_url));
-            const isUpdate = !!apiObject.fetching_reference;
-            await kafkaManager.produceInLowPriority(urlObject, LOW_PRIORITY_TIMEOUT * (retries + 1), retries + 1, isUpdate)
-            return {apiObject, queryResult: {status: 404, error: err}};
-        } else if (err.code === "ERR_BAD_REQUEST") {
-            const urlObject = new UrlObject(await dbManager.getURL(apiObject.API_url));
-            const isUpdate = !!apiObject.fetching_reference;
-            await kafkaManager.produceInLowPriority(urlObject, LOW_PRIORITY_TIMEOUT * (retries + 1), retries + 1, isUpdate)
-            return {apiObject: apiObject, queryResult: {status: 400, error: err.code}};
+        const urlObject = new UrlObject(await dbManager.getURL(apiObject.API_url));
+        const isUpdate = !!apiObject.fetching_reference;
+        switch (err.response.status) {
+            case 404:
+                console.log(`[ERROR] 404 - ${err.response.data.message}`);
+                await kafkaManager.produceInLowPriority(urlObject, LOW_PRIORITY_TIMEOUT * (retries + 1), retries + 1, isUpdate)
+                return {apiObject, queryResult: {status: 404, error: err.code}};
+            case 400:
+                console.log(`[ERROR] 400 - ${err.response.data.message}`);
+                await kafkaManager.produceInLowPriority(urlObject, LOW_PRIORITY_TIMEOUT * (retries + 1), retries + 1, isUpdate)
+                return {apiObject: apiObject, queryResult: {status: 400, error: err.code}};
+            case 403:
+                console.log(`[ERROR] 403 - ${err.response.data.message}`);
+                await handleForbiddenError();
+                return {apiObject: apiObject, queryResult: {status: 403, error: err.code}};
+            case 500:
+                console.log(`[ERROR] 500 - ${err.response.data.message}`);
+                await kafkaManager.produceInLowPriority(urlObject, LOW_PRIORITY_TIMEOUT * (retries + 1), retries + 1, isUpdate)
+                return {apiObject: apiObject, queryResult: {status: 500, error: err.code}};
         }
-        return {apiObject: apiObject, queryResult: {status: 500, error: err.code}};
     }
 }
 
@@ -232,6 +239,9 @@ const updateAPI = async (apiUrlObject, apiUrlHash, retries) => {
         console.log(`${update.modifiedCount} document(s) were updated.`);
     }
 
+    // wair 250 ms
+    await new Promise(resolve => setTimeout(resolve, 250));
+
     return true; // return true if the api has been updated
 }
 
@@ -255,6 +265,15 @@ const handleLowPriority = async (consumedMessage) => {
         // it will be flagged as dead
             console.log(`[URL] => ${apiUrlObject.url} is dead`);
     }
+}
+
+const handleForbiddenError = async () => {
+    // pause consumers
+    await Promise.all([mainConsumer.pause(), lowPriorityConsumer.pause()]);$
+    // wait for 60 seconds
+    await new Promise(resolve => setTimeout(resolve, 60000));
+    // resume consumers
+    await Promise.all([mainConsumer.resume(), lowPriorityConsumer.resume()]);
 }
 
 const retryConsumeApiUrls = async () => {
