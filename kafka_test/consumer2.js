@@ -1,4 +1,4 @@
-const { Kafka } = require('kafkajs');
+const { Kafka } = require('./kafkajs');
 
 const kafka = new Kafka({
     clientId: 'my-super-test',
@@ -82,4 +82,4 @@ async function consumeMessagesLow() {
 // Example usage
 // consumeMessages();
 
-startConsumers();
+startConsumers().catch(console.error);

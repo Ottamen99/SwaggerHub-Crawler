@@ -11,6 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "kafkajs": "^2.2.3"
+    "kafkajs": "^2.2.3",
+    "uuid": "^9.0.0"
   }
 }

@@ -6,6 +6,7 @@ const databaseManager = require('../db/databaseManager.js');
 const kafkaManager = require('./kafkaManager.js');
 const {UrlObject} = require("../models/UrlObject");
 const utils = require("./utilityFunctions");
+const {increaseKafka, increaseSuccessKafka, refreshPriorityKafka} = require("./wsManager");
 
 const topic = config.kafkaConfig.topic.topic;
 
@@ -39,7 +40,15 @@ async function produceMessages(lstUrls) {
                 value: JSON.stringify(message),
                 partition: urlElem.kafkaPartition
             }]
-        });
+        })
+        await increaseKafka()
+        if (urlElem.kafkaPartition === config.kafkaConfig.priorities.HIGH) {
+            await refreshPriorityKafka("high", "increase")
+        } else if (urlElem.kafkaPartition === config.kafkaConfig.priorities.MEDIUM) {
+            await refreshPriorityKafka("medium", "increase")
+        } else if (urlElem.kafkaPartition === config.kafkaConfig.priorities.LOW) {
+            await refreshPriorityKafka("low", "increase")
+        }
     }
     await producer.disconnect();
 }

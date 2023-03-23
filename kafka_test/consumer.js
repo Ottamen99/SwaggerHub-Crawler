@@ -1,4 +1,4 @@
-const { Kafka } = require('kafkajs');
+const { Kafka } = require('./kafkajs');
 
 const kafka = new Kafka({
     clientId: 'my-super-test',

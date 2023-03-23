@@ -1,4 +1,4 @@
-const { Kafka } = require('kafkajs');
+const { Kafka } = require('kafkajs-custom');
 const config = require("../config/config");
 const {UrlObject} = require("../models/UrlObject");
 const utilityFunctions = require("./utilityFunctions");

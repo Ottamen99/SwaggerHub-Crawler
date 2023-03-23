@@ -8,10 +8,12 @@ const kafkaManager = require("./utils/kafkaManager");
 const {UrlObject} = require("./models/UrlObject");
 const {FetchingObject} = require("./models/fetchingObject");
 const {LOW_PRIORITY_TIMEOUT} = require("./config/constants");
+const {refreshPriorityKafka, decreaseKafka, increaseSuccessKafka, increaseUpdateKafka} = require("./utils/wsManager");
 
 // kafkaManager.setupKafka(true).then(() => {
 //     console.log('Kafka setup complete');
 //     kafkaManager.logTopics();
+//    process.exit(0);
 // })
 
 const topic = config.kafkaConfig.topic.topic;
@@ -45,12 +47,8 @@ const startConsumers = async () => {
 
     await Promise.all([mainConsumer.subscribe({
         topic: topic,
-        fromBeginning: true,
-        partitions: [config.kafkaConfig.priorities.HIGH]
     }), lowPriorityConsumer.subscribe({
         topic: topic,
-        fromBeginning: true,
-        partitions: [config.kafkaConfig.priorities.LOW],
     })]);
     console.log('[Consumers subscribed]');
 
@@ -60,7 +58,7 @@ const startConsumers = async () => {
 
 async function consumeApiUrls() {
     await mainConsumer.run({
-        eachMessage: async ({ topic, partition, message }) => {
+        eachMessage: async ({ _, partition, message }) => {
             // get corresponding api from db
             const result = JSON.parse(message.value.toString())
 
@@ -69,13 +67,16 @@ async function consumeApiUrls() {
                     const resultUrlObjectHigh = new UrlObject(JSON.parse(result.urlObject));
                     console.log('\n\nPartition high priority');
                     await fetchNewAPI(resultUrlObjectHigh, result.API_url_hash)
+                    await refreshPriorityKafka("high", "decrease")
                     break;
                 case config.kafkaConfig.priorities.MEDIUM:
                     const resultUrlObjectMedium = new UrlObject(JSON.parse(result.urlObject));
                     console.log('\n\nPartition medium priority');
                     await updateAPI(resultUrlObjectMedium, result.API_url_hash, 0)
+                    await refreshPriorityKafka("medium", "decrease")
                     break;
             }
+            await decreaseKafka()
         }
     });
 }
@@ -119,6 +120,8 @@ const fetchNewAPI = async (apiUrlObject, apiUrlHash, retries) => {
     console.log(`${update.modifiedCount} document(s) were updated.`);
 
     await new Promise((resolve) => setTimeout(resolve, 250));
+
+    await increaseSuccessKafka()
 
     return true; // API added successfully
 }
@@ -242,6 +245,8 @@ const updateAPI = async (apiUrlObject, apiUrlHash, retries) => {
     // wair 250 ms
     await new Promise(resolve => setTimeout(resolve, 250));
 
+    await increaseUpdateKafka()
+
     return true; // return true if the api has been updated
 }
 
@@ -269,7 +274,7 @@ const handleLowPriority = async (consumedMessage) => {
 
 const handleForbiddenError = async () => {
     // pause consumers
-    await Promise.all([mainConsumer.pause(), lowPriorityConsumer.pause()]);$
+    await Promise.all([mainConsumer.pause(), lowPriorityConsumer.pause()]);
     // wait for 60 seconds
     await new Promise(resolve => setTimeout(resolve, 60000));
     // resume consumers
@@ -278,7 +283,7 @@ const handleForbiddenError = async () => {
 
 const retryConsumeApiUrls = async () => {
     await lowPriorityConsumer.run({
-        eachMessage: async ({ topic, partition, message }) => {
+        eachMessage: async ({ _, partition, message }) => {
             // get corresponding api from db
             const result = JSON.parse(message.value.toString())
             switch (partition) {

@@ -6,9 +6,14 @@
 </head>
 <body>
     <h1>My First Heading</h1>
-    <p>My first paragraph.</p>
+    <p id="downloadSuccess">Number of downloaded elements: </p>
+    <p id="updateSuccess">Number of updated elements: </p>
+    <p id="downloadFailure">Number of failure: </p>
+    <p id="kafkaQueue">Number of elements waiting in the queue: </p>
+    <p id="highPriority">Number of high priority elements: </p>
+    <p id="mediumPriority">Number of medium priority elements: </p>
+    <p id="lowPriority">Number of low priority elements: </p>
     <button id="send-button">Click me</button>
-    <ul id="message-list"></ul>
 </body>
 <script src="https://cdn.socket.io/4.4.1/socket.io.min.js" integrity="sha384-fKnu0iswBIqkjxrhQCTZ7qlLHOFEgNkRmK2vaO/LbTZSXdJfAu6ewRBdwHPhBo/H" crossorigin="anonymous"></script>
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>

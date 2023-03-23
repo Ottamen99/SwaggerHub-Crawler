@@ -25,4 +25,5 @@ async function produceMessages(urls) {
 
 // Example usage
 const urls = ['https://example.com/page1', 'https://example.com/page2', 'https://example.com/page3'];
+//const urls = ['https://example.com/page1'];
 produceMessages(urls);

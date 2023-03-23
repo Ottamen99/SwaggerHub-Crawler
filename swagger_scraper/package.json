@@ -16,6 +16,7 @@
     "csv-writer": "^1.6.0",
     "download": "^8.0.0",
     "kafkajs": "^2.2.3",
+    "kafkajs-custom": "^1.0.0",
     "mkdirp": "^1.0.4",
     "mongodb": "^5.0.1",
     "node-stopwatch": "^0.0.1",

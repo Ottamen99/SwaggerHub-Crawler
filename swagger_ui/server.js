@@ -11,54 +11,81 @@ app.get('/', (req, res) => {
     res.sendFile(__dirname + '/index.html');
 });
 
+let messageCounter = 0;
+
+let highPriorityCounter = 0;
+let mediumPriorityCounter = 0;
+let lowPriorityCounter = 0;
+
+let downloadSuccessCounter = 0;
+let downloadFailureCounter = 0;
+let updateSuccessCounter = 0;
+
 io.on('connection', (socket) => {
-    console.log('a user connected');
+    // console.log('a user connected');
     socket.on('chat message', (msg) => {
         console.log('message: ' + msg);
     });
+    socket.on('disconnect', () => {
+        // console.log('user disconnected');
+    });
+    socket.on('kafka queue', (msg, callback) => {
+       if (msg === 'decrease') {
+              messageCounter--;
+       } else if (msg === 'increase') {
+              messageCounter++;
+       }
+         callback({success: "yes"});
+        io.emit('chat message', messageCounter);
+    });
+
+    socket.on('kafka priority', (msg, callback) => {
+        let currCounter = 0;
+        if (msg.action === 'increase') {
+            currCounter++;
+        } else if (msg.action === 'decrease') {
+            currCounter--;
+        }
+        switch (msg.priority) {
+            case 'high':
+                highPriorityCounter += currCounter;
+                break;
+            case 'medium':
+                mediumPriorityCounter += currCounter;
+                break;
+            case 'low':
+                lowPriorityCounter += currCounter;
+                break;
+        }
+        callback({success: "yes"});
+        io.emit('priority', {
+            high: highPriorityCounter,
+            medium: mediumPriorityCounter,
+            low: lowPriorityCounter
+        });
+    })
+
+
+    socket.on('kafka download', (msg, callback) => {
+        if (msg === 'success') {
+            downloadSuccessCounter++;
+        } else if (msg === 'failure') {
+            downloadFailureCounter++;
+        }
+        callback({success: "yes"});
+        io.emit('download', {
+            success: downloadSuccessCounter,
+            failure: downloadFailureCounter
+        });
+    })
+    socket.on('kafka update', (msg, callback) => {
+        updateSuccessCounter++;
+        callback({success: "yes"});
+        io.emit('update', updateSuccessCounter);
+    })
 });
 
 http.listen(3000, () => {
     console.log('listening on *:3000');
 });
 
-
-// create kafka consumer
-const kafka = new Kafka({
-    clientId: 'my-super-test',
-    brokers: ['localhost:9092']
-});
-
-const consumer = kafka.consumer({ groupId: 'my-group' });
-
-const topic = 'my-kafka-test'
-const partition = 0
-const run = async () => {
-    // Consuming
-    await consumer.connect()
-    await consumer.subscribe({ topic: 'my-kafka-test', fromBeginning: true })
-
-    await consumer.run({
-        autoCommit: false,
-        eachMessage: async ({ topic, partition, message }) => {
-            console.log({
-                value: message.value.toString(),
-            })
-            io.emit('chat message', message.value.toString());
-        },
-    })
-}
-
-async function countMessagesInQueue() {
-    await consumer.connect()
-    await consumer.subscribe({ topic: topic, fromBeginning: true })
-
-    // ...consume messages...
-
-    const { paused } = consumer.commi()
-    console.log(`Number of messages in queue: ${paused.length}`)
-
-    await consumer.disconnect()
-}
-
-countMessagesInQueue().catch(console.error)
