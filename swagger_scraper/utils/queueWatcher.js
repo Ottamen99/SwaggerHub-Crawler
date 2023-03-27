@@ -12,7 +12,7 @@ let changeStream;
 
 ipc.serve(() => {
     ipc.server.on('start', () => {
-        ipc.log('## started ##', ipc.config.delay);
+        ipc.log('## started ##');
         changeStream = collection.watch();
         changeStream.on('change', (change) => {
             if (change.operationType === 'insert') {
@@ -47,3 +47,18 @@ ipc.serve(() => {
 })
 
 ipc.server.start();
+
+// perform any cleanup or finalization tasks before stopping the app
+async function cleanup() {
+    console.log('Performing cleanup tasks before stopping the app...');
+    ipc.server.stop();
+    process.exit();
+}
+
+// listen for the SIGINT signal
+process.on('SIGINT', function() {
+    console.log('Received SIGINT signal, stopping the app...');
+    cleanup().catch(err => {
+        console.log('Error during cleanup: ', err);
+    });
+});

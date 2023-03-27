@@ -4,41 +4,23 @@ const utils = require("./utils/utilityFunctions");
 const config = require('./config/config.js');
 const dbManager = require('./db/databaseManager.js');
 const {hashString, parseOwner} = require("./utils/utilityFunctions");
-const kafkaManager = require("./utils/kafkaManager");
 const {UrlObject} = require("./models/UrlObject");
 const {FetchingObject} = require("./models/fetchingObject");
 const {LOW_PRIORITY_TIMEOUT} = require("./config/constants");
 
 const workerpool = require('workerpool');
 
-// perform any cleanup or finalization tasks before stopping the app
-async function cleanup() {
-    console.log('Performing cleanup tasks before stopping the app...');
-    process.exit();
-}
-
-// listen for the SIGINT signal
-process.on('SIGINT', function() {
-    console.log('Received SIGINT signal, stopping the app...');
-    cleanup().catch(err => {
-        console.log('Error during cleanup: ', err);
-    });
-});
-
-let mainConsumer;
-let lowPriorityConsumer;
-
 async function consumeApiUrls(incomingData) {
         // get corresponding api from db
         // const result = JSON.parse(message.value.toString())
 
         switch (incomingData.priority) {
-            case config.kafkaConfig.priorities.HIGH:
+            case config.priorities.HIGH:
                 const resultUrlObjectHigh = new UrlObject(JSON.parse(incomingData.urlObject));
                 console.log('\n\nPartition high priority');
                 await fetchNewAPI(resultUrlObjectHigh, incomingData.API_url_hash)
                 break;
-            case config.kafkaConfig.priorities.MEDIUM:
+            case config.priorities.MEDIUM:
                 const resultUrlObjectMedium = new UrlObject(JSON.parse(incomingData.urlObject));
                 console.log('\n\nPartition medium priority');
                 await updateAPI(resultUrlObjectMedium, incomingData.API_url_hash, 0)
@@ -155,20 +137,20 @@ async function getApiFromSwagger(apiUrlHash, retries) {
         switch (err.response.status) {
             case 404:
                 console.log(`[ERROR] 404 - ${err.response.data.message}`);
-                await kafkaManager.produceInLowPriority(urlObject, LOW_PRIORITY_TIMEOUT * (retries + 1), retries + 1, isUpdate)
-                return {apiObject, queryResult: {status: 404, error: err.code}};
+                // await kafkaManager.produceInLowPriority(urlObject, LOW_PRIORITY_TIMEOUT * (retries + 1), retries + 1, isUpdate)
+                // return {apiObject, queryResult: {status: 404, error: err.code}};
             case 400:
                 console.log(`[ERROR] 400 - ${err.response.data.message}`);
-                await kafkaManager.produceInLowPriority(urlObject, LOW_PRIORITY_TIMEOUT * (retries + 1), retries + 1, isUpdate)
-                return {apiObject: apiObject, queryResult: {status: 400, error: err.code}};
+                // await kafkaManager.produceInLowPriority(urlObject, LOW_PRIORITY_TIMEOUT * (retries + 1), retries + 1, isUpdate)
+                // return {apiObject: apiObject, queryResult: {status: 400, error: err.code}};
             case 403:
                 console.log(`[ERROR] 403 - ${err.response.data.message}`);
-                await handleForbiddenError();
-                return {apiObject: apiObject, queryResult: {status: 403, error: err.code}};
+                // await handleForbiddenError();
+                // return {apiObject: apiObject, queryResult: {status: 403, error: err.code}};
             case 500:
                 console.log(`[ERROR] 500 - ${err.response.data.message}`);
-                await kafkaManager.produceInLowPriority(urlObject, LOW_PRIORITY_TIMEOUT * (retries + 1), retries + 1, isUpdate)
-                return {apiObject: apiObject, queryResult: {status: 500, error: err.code}};
+                // await kafkaManager.produceInLowPriority(urlObject, LOW_PRIORITY_TIMEOUT * (retries + 1), retries + 1, isUpdate)
+                // return {apiObject: apiObject, queryResult: {status: 500, error: err.code}};
         }
     }
 }
@@ -211,51 +193,51 @@ const updateAPI = async (apiUrlObject, apiUrlHash, retries) => {
     return true; // return true if the api has been updated
 }
 
-const handleLowPriority = async (consumedMessage) => {
-    const apiUrlObject = new UrlObject(JSON.parse(consumedMessage.urlObject));
-    if (consumedMessage.retryNumber <= 3) {
-        // await timout
-        console.log(`[URL] => ${apiUrlObject.url} is dead, retrying in ${consumedMessage.timeoutRetry} ms`)
-        await new Promise(resolve => setTimeout(resolve, consumedMessage.timeoutRetry));
-        // this url can be retried again
-        switch (consumedMessage.isUpdate) {
-            case true:
-                await updateAPI(apiUrlObject, consumedMessage.API_url_hash, consumedMessage.retryNumber);
-                break;
-            case false:
-                await fetchNewAPI(apiUrlObject, consumedMessage.API_url_hash, consumedMessage.retryNumber);
-                break;
-        }
-    } else {
-        // this url can't be retried anymore
-        // it will be flagged as dead
-        console.log(`[URL] => ${apiUrlObject.url} is dead`);
-    }
-}
+// const handleLowPriority = async (consumedMessage) => {
+//     const apiUrlObject = new UrlObject(JSON.parse(consumedMessage.urlObject));
+//     if (consumedMessage.retryNumber <= 3) {
+//         // await timout
+//         console.log(`[URL] => ${apiUrlObject.url} is dead, retrying in ${consumedMessage.timeoutRetry} ms`)
+//         await new Promise(resolve => setTimeout(resolve, consumedMessage.timeoutRetry));
+//         // this url can be retried again
+//         switch (consumedMessage.isUpdate) {
+//             case true:
+//                 await updateAPI(apiUrlObject, consumedMessage.API_url_hash, consumedMessage.retryNumber);
+//                 break;
+//             case false:
+//                 await fetchNewAPI(apiUrlObject, consumedMessage.API_url_hash, consumedMessage.retryNumber);
+//                 break;
+//         }
+//     } else {
+//         // this url can't be retried anymore
+//         // it will be flagged as dead
+//         console.log(`[URL] => ${apiUrlObject.url} is dead`);
+//     }
+// }
 
-const handleForbiddenError = async () => {
-    // pause consumers
-    await Promise.all([mainConsumer.pause(), lowPriorityConsumer.pause()]);
-    // wait for 60 seconds
-    await new Promise(resolve => setTimeout(resolve, 60000));
-    // resume consumers
-    await Promise.all([mainConsumer.resume(), lowPriorityConsumer.resume()]);
-}
+// const handleForbiddenError = async () => {
+//     // pause consumers
+//     await Promise.all([mainConsumer.pause(), lowPriorityConsumer.pause()]);
+//     // wait for 60 seconds
+//     await new Promise(resolve => setTimeout(resolve, 60000));
+//     // resume consumers
+//     await Promise.all([mainConsumer.resume(), lowPriorityConsumer.resume()]);
+// }
 
-const retryConsumeApiUrls = async () => {
-    await lowPriorityConsumer.run({
-        eachMessage: async ({ _, partition, message }) => {
-            // get corresponding api from db
-            const result = JSON.parse(message.value.toString())
-            switch (partition) {
-                case config.kafkaConfig.priorities.LOW:
-                    console.log('\n\nPartition low priority');
-                    await handleLowPriority(result);
-                    break;
-            }
-        }
-    });
-}
+// const retryConsumeApiUrls = async () => {
+//     await lowPriorityConsumer.run({
+//         eachMessage: async ({ _, partition, message }) => {
+//             // get corresponding api from db
+//             const result = JSON.parse(message.value.toString())
+//             switch (partition) {
+//                 case config.priorities.LOW:
+//                     console.log('\n\nPartition low priority');
+//                     await handleLowPriority(result);
+//                     break;
+//             }
+//         }
+//     });
+// }
 
 workerpool.worker({
     consumeApiUrls: async (incomingData) => {

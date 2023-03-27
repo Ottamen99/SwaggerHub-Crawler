@@ -77,25 +77,9 @@ exports.truncateURLs = async () => {
     return await db.collection('urls').deleteMany({});
 }
 
-exports.updateSuccessCounter = async (url) => {
-
-}
-
-exports.updateFailureCounter = async (url) => {
-
-}
-
 exports.updateURL = async (filter, newUrl) => {
     const options = { upsert: false};
     return await db.collection('urls').updateOne(filter, { $set: newUrl }, options);
-}
-
-exports.addNewFetch = async (url) => {
-
-}
-
-exports.checkIfURLExists = async (url) => {
-
 }
 
 exports.getUrlIfExists = async (url) => {
@@ -116,31 +100,6 @@ exports.addFetches = async (newFetches) => {
 exports.getFetches = async () => {
     return await db.collection('fetches').find().toArray();
 }
-
-exports.getFetch = async (fetchRef) => {
-
-}
-
-
-// ====================== APIPROXY COLLECTION ======================
-
-exports.addAPIProxy = async (newAPIProxy) => {
-    return await db.collection('proxyUrls').insertOne(newAPIProxy);
-}
-
-exports.addAPIProxies = async (newAPIProxies) => {
-    return await db.collection('proxyUrls').insertMany(newAPIProxies);
-}
-
-// check if exists
-exports.getAPIProxy = async (query) => {
-    return await db.collection('proxyUrls').findOne({query: query})
-}
-
-exports.getAPIProxyCursor = () => {
-    return db.collection('proxyUrls').find();
-}
-
 
 exports.removeElementFromQueue = async (elem) => {
     return await db.collection('queue').deleteOne({_id: new ObjectId(elem._id)});

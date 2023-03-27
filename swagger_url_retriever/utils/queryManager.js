@@ -24,6 +24,3 @@ exports.generateQueries = async () => {
         }
     }
 }
-exports.generateOwenrQueries = async () => {
-
-}

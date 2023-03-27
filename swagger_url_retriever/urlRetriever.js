@@ -13,7 +13,7 @@ let getAPIListUrls = (url) => {
         }).then((res) => {
             const apiPromises = res.data.apis.map(api => {
                 return apiManager.addAPI(apiManager.createAPIObject(api))
-                    .then(r => api.properties[0].url);
+                    .then(_ => api.properties[0].url);
             });
             Promise.all(apiPromises).then(apiUrls => {
                 resolve(apiUrls);
@@ -59,7 +59,6 @@ const insertUrlIfNotExists = async (url) => {
 
     }
 }
-
 
 exports.retrieveURLs = async () => {
     const cursor = databaseManager.getAPIProxyCursor()
