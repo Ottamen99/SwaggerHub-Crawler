@@ -1,4 +1,3 @@
-const {ObjectId} = require("mongodb");
 const db = require('./mongoConnector.js')();
 
 // list all databases
@@ -51,7 +50,7 @@ exports.getLastUpdatedApi = async (API_url_hash) => {
         .toArray(function(err, docs) {
             if (err) throw err;
             return docs;
-    });
+        });
 }
 
 
@@ -141,15 +140,17 @@ exports.getAPIProxyCursor = () => {
     return db.collection('proxyUrls').find();
 }
 
-
-exports.removeElementFromQueue = async (elem) => {
-    return await db.collection('queue').deleteOne({_id: new ObjectId(elem._id)});
+exports.addNewOwner = async (newOwner) => {
+    return await db.collection('owners').insertOne(newOwner);
 }
 
-exports.countElementsInQueue = async () => {
-    return await db.collection('queue').countDocuments();
+exports.addNewOwners = async (newOwners) => {
+    return await db.collection('owners').insertMany(newOwners);
 }
 
-exports.getQueueCursor = () => {
-    return db.collection('queue').find();
+exports.getOwnerIfExists = async (name) => {
+    return await db.collection('owners').findOne({name: name})}
+
+exports.insertNewQueueElement = async (newQueueElement) => {
+    return await db.collection('queue').insertOne(newQueueElement);
 }

@@ -2,7 +2,6 @@ const express = require('express');
 const app = express();
 const http = require('http').Server(app);
 const io = require('socket.io')(http);
-const { Kafka } = require('kafkajs');
 
 // set public folder
 app.use(express.static(__dirname + '/public'));
@@ -29,14 +28,9 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         // console.log('user disconnected');
     });
-    socket.on('kafka queue', (msg, callback) => {
-       if (msg === 'decrease') {
-              messageCounter--;
-       } else if (msg === 'increase') {
-              messageCounter++;
-       }
-         callback({success: "yes"});
-        io.emit('chat message', messageCounter);
+    socket.on('stats', (msg, callback) => {
+        callback({success: "yes"});
+        io.emit('chat message', msg);
     });
 
     socket.on('kafka priority', (msg, callback) => {

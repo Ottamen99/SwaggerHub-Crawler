@@ -54,12 +54,12 @@ async function produceMessages(lstUrls) {
 }
 
 // get list of APIs urls
-let getAPIListUrls = (sortBy, order, limit, page, owner, spec) => {
-    let urlToGetAPIList = utils.buildUrl(sortBy, order, limit, page, owner, spec);
+let getAPIListUrls = (url) => {
+    // let urlToGetAPIList = utils.buildUrl(sortBy, order, limit, page, owner, spec);
     return new Promise((resolve, reject) => {
         axios({
             method: 'get',
-            url: urlToGetAPIList
+            url: url
         }).then((res) => {
             const apiPromises = res.data.apis.map(api => {
                 return apiManager.addAPI(apiManager.createAPIObject(api))
@@ -109,14 +109,18 @@ const selectKafkaPartition = async (url) => {
 }
 
 
-const retrieveURLs = async (sort_by, order, limit, page, owner, spec) => {
-    let urls = await getAPIListUrls(sort_by, order, limit, page, owner, spec);
-    let lstUrls = []
-    for (const url of urls) {
-        const {urlObject, kafkaPartition} = await selectKafkaPartition(url)
-        lstUrls.push({urlObject, kafkaPartition})
+const retrieveURLs = async () => {
+    const cursor = databaseManager.getAPIProxyCursor()
+    while (await cursor.hasNext()) {
+        const doc = await cursor.next()
+        let urls = await getAPIListUrls(doc.query);
+        let lstUrls = []
+        for (const url of urls) {
+            const {urlObject, kafkaPartition} = await selectKafkaPartition(url)
+            lstUrls.push({urlObject, kafkaPartition})
+        }
+        // await produceMessages(lstUrls).catch(err => console.error(err));
     }
-    await produceMessages(lstUrls).catch(err => console.error(err));
 }
 
 module.exports = {

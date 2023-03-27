@@ -1,16 +1,9 @@
 const urlRetriever = require("./utils/urlRetriever");
 
-sort_by = 'CREATED'
-order = 'ASC'
-limit = 1
-page = 1
-owner = ''
-spec = ''
-
-urlRetriever.retrieveURLs(sort_by, order, limit, page, owner, spec)
+urlRetriever.retrieveURLs()
     .then(() => {
         console.log('Finished');
-        // process.exit(0);
+        process.exit(0);
     })
     .catch((err) => {
         console.log(err);

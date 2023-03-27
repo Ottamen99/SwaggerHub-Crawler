@@ -13,7 +13,7 @@ sendButton.addEventListener('click', () => {
 socket.on('chat message', (msg) => {
     // kafkaQueue element in HTML update
     const kafkaQueue = document.getElementById('kafkaQueue');
-    kafkaQueue.innerHTML = 'Number of elements in the queue: ' + msg;
+    kafkaQueue.innerHTML = 'Number of elements in the queue: ' + msg.pendingTasks;
 });
 
 // Receive kafka priority from the server

@@ -42,29 +42,8 @@ const kafkaRetryConsumerConfig = {
     ],
 }
 
-const workerPoolConfig = {
-    minWorkers: 1,
-    maxWorkers: 1,
-}
-
-const ipcConfigClient = {
-    id: 'world',
-    retry: 1500,
-    maxRetries: 100000,
-    silent: true,
-}
-
-const ipcConfigServer = {
-    id: 'world',
-    retry: 1500,
-    maxRetries: 100000,
-}
-
 module.exports = {
     kafkaConfig,
     kafkaMainConsumerConfig,
     kafkaRetryConsumerConfig,
-    ipcConfigClient,
-    ipcConfigServer,
-    workerPoolConfig,
 }

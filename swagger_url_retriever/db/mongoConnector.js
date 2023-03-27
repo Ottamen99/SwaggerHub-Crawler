@@ -3,7 +3,7 @@ const { MongoClient } = require('mongodb');
 
 
 // create a new MongoClient
-const client = new MongoClient(config.URI, {connectTimeoutMS: 100000});
+const client = new MongoClient(config.URI);
 
 // connect to the server
 client.connect((err) => {
