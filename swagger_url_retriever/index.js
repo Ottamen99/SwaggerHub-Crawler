@@ -2,7 +2,7 @@ const urlRetriever = require("./urlRetriever");
 const {generateQueries} = require("./utils/queryManager");
 
 let main = async () => {
-    await generateQueries()
+    // await generateQueries()
     await urlRetriever.retrieveURLs()
 }
 

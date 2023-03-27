@@ -1,12 +1,12 @@
 const axios = require("axios");
-const {ApiObject} = require("./models/ApiObject");
-const utils = require("./utils/utilityFunctions");
-const config = require('./config/config.js');
-const dbManager = require('./db/databaseManager.js');
-const {hashString, parseOwner} = require("./utils/utilityFunctions");
-const {UrlObject} = require("./models/UrlObject");
-const {FetchingObject} = require("./models/fetchingObject");
-const {LOW_PRIORITY_TIMEOUT} = require("./config/constants");
+const {ApiObject} = require("../models/ApiObject");
+const utils = require("./utilityFunctions");
+const config = require('../config/config.js');
+const dbManager = require('../db/databaseManager.js');
+const {hashString, parseOwner} = require("./utilityFunctions");
+const {UrlObject} = require("../models/UrlObject");
+const {FetchingObject} = require("../models/FetchingObject");
+const {LOW_PRIORITY_TIMEOUT} = require("../config/constants");
 
 const workerpool = require('workerpool');
 

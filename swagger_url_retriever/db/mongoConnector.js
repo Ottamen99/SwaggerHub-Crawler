@@ -3,15 +3,13 @@ const { MongoClient } = require('mongodb');
 
 
 // create a new MongoClient
-const client = new MongoClient(config.URI);
+const client = new MongoClient(config.URI, { directConnection: true });
 
 // connect to the server
-client.connect((err) => {
-    if (err) {
-        console.log('Error connecting to MongoDB', err);
-    } else {
-        console.log('Connected to MongoDB');
-    }
+client.connect().then(r => {
+    console.log('Connected to MongoDB');
+}).catch(err => {
+    console.log('Error connecting to MongoDB', err);
 });
 
 module.exports = () => {

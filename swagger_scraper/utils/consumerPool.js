@@ -4,7 +4,7 @@ const databaseManager = require('../db/databaseManager')
 const {sendStats} = require("./wsManager");
 const {ipcConfigClient, workerPoolConfig} = require("../config/config");
 
-const pool = workerPool.pool('../worker.js', {
+const pool = workerPool.pool(__dirname + '/worker.js', {
     minWorkers: workerPoolConfig.minWorkers,
     maxWorkers: workerPoolConfig.maxWorkers
 })

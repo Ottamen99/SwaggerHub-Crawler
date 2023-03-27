@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  mongo-database:
+    container_name: mongodb
+    image: mongo
+    volumes:
+      - ~/mongo/data1:/data/db
+      - ./rs-init.sh:/scripts/rs-init.sh
+    networks:
+      - mongo-network
+    ports:
+      - 27017:27017
+    restart: always
+    entrypoint: [ "/usr/bin/mongod", "--bind_ip_all", "--replSet", "dbrs" ]
+  scraper:
+    container_name: swagger_scraper
+    build: ./swagger_scraper
+    restart: always
+    depends_on:
+      - mongo-database
+    networks:
+      - mongo-network
+    environment:
+      - MONGO_HOST=mongodb://mongodb:27017
+      - SOCKET_ADDRESS=http://swagger_ui:3000
+  dashboard:
+    container_name: swagger_ui
+    build: ./swagger_ui
+    ports:
+      - 3000:3000
+    restart: always
+    depends_on:
+      - mongo-database
+      - scraper
+    networks:
+      - mongo-network
+
+networks:
+  mongo-network:
+    driver: bridge
