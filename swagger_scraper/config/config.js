@@ -12,14 +12,14 @@ const workerPoolConfig = {
 const ipcConfigClient = {
     id: 'world',
     retry: 1500,
-    maxRetries: 100000,
+    maxRetries: 1000000,
     silent: true,
 }
 
 const ipcConfigServer = {
     id: 'world',
     retry: 1500,
-    maxRetries: 100000,
+    maxRetries: 1000000,
 }
 
 module.exports = {
