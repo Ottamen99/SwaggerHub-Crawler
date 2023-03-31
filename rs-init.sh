@@ -8,7 +8,6 @@ var config = {
         {
             "_id": 1,
             "host": "mongodb:27017",
-            "priority": 3
         }
     ]
 };

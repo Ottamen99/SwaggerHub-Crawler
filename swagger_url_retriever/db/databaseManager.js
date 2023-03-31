@@ -80,5 +80,6 @@ exports.getOwnerIfExists = async (name) => {
     return await db.collection('owners').findOne({name: name})}
 
 exports.insertNewQueueElement = async (newQueueElement) => {
+    await new Promise(resolve => setTimeout(resolve, 1000));
     return await db.collection('queue').insertOne(newQueueElement);
 }

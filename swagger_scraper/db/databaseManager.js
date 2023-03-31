@@ -109,6 +109,12 @@ exports.countElementsInQueue = async () => {
     return await db.collection('queue').countDocuments();
 }
 
-exports.getQueueCursor = () => {
-    return db.collection('queue').find();
+exports.getQueueCursor = async () => {
+    // await new Promise(resolve => setTimeout(resolve, 2000))
+    return db.collection('queue').find({consumed:null})
+}
+
+
+exports.flagConsumeElement=  async (elem) =>{
+    await db.collection('queue').updateOne({_id: new ObjectId(elem._id)},{$set: {consumed:true}} )
 }

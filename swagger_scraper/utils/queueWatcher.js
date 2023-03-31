@@ -6,7 +6,7 @@ const ipc = require('node-ipc').default;
 ipc.config.id = ipcConfigServer.id;
 ipc.config.retry = ipcConfigServer.retry;
 ipc.config.maxRetries = ipcConfigServer.maxRetries;
-ipc.config.silent = true
+// ipc.config.silent = true
 
 const collection = db.collection('queue');
 let changeStream;
@@ -22,20 +22,22 @@ let consumerQueueIsEmpty = true;
 
 let elementsInQueue = 0;
 
+
+let cursor;
+
 let messageBroadcast = async (change) => {
-    // if (change.operationType === 'insert') {
-    //     // console.log(change.fullDocument);
-    //     ipc.server.broadcast('message', change.fullDocument);
-    // }
-    // if (change.operationType === 'insert') {
-    //     elementsInQueue = await countElementsInQueue();
-    // }
+    if (change.operationType === 'insert') {
+        elementsInQueue = await countElementsInQueue();
+        cursor = await getQueueCursor();
+        ipc.server.broadcast('checkIdle', "");
+    }
 }
 
 let send = async (socket) => {
-    const cursor = await getQueueCursor();
+    cursor = await getQueueCursor();
     while (await cursor.hasNext()) {
-        if (numberOfTasks >= 1172) {
+        console.log("GO TO NEXT ELEMENT")
+        if (numberOfTasks >= 70) {
             await new Promise(resolve => {
                 // Wait for the consumer queue to become empty
                 const checkQueue = setInterval(() => {
@@ -106,6 +108,20 @@ ipc.serve(() => {
         if (elementsInQueue === 0) {
             queueIsEmpty = true;
             console.log("[TASK EXECUTED] QUEUE IS EMPTY")
+        }
+    });
+    ipc.server.on('poolIdle', async (data, socket) => {
+        if (data === true && queueIsEmpty) {
+            console.log("[POOL IDLE] I'm IN " + data);
+            numberOfTasks = 0;
+            await sendNewBatch(socket);
+        } else if (data === false && !queueIsEmpty) {
+            // console.log("[POOL IDLE] I'm not working " + data);
+            cursor = await getQueueCursor();
+        } else if (data === true && !queueIsEmpty) {
+            console.log("[POOL IDLE] I'm IN " + data);
+            numberOfTasks = 0;
+            await sendNewBatch(socket);
         }
     });
     ipc.server.on('socket.disconnected', (socket, destroyedSocketID) => {
