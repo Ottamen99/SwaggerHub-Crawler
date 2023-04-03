@@ -7,8 +7,10 @@ const {hashString, parseOwner} = require("./utilityFunctions");
 const {UrlObject} = require("../models/UrlObject");
 const {FetchingObject} = require("../models/FetchingObject");
 const {LOW_PRIORITY_TIMEOUT} = require("../config/constants");
+const { SocksProxyAgent } = require('socks-proxy-agent');
 
 const workerpool = require('workerpool');
+const agent = new SocksProxyAgent('socks5h://127.0.0.1:9050');
 
 async function consumeApiUrls(incomingData) {
         // get corresponding api from db
@@ -123,13 +125,24 @@ async function getApiFromSwagger(apiUrlHash, retries) {
     const api = await dbManager.getAPI(apiUrlHash);
     let apiObject = new ApiObject(api);
     try {
-        const queryResult = await axios.get(apiObject.API_url).then((res) => {
+        const queryResult = await axios({
+            method: 'get',
+            url: apiObject.API_url,
+            httpsAgent: agent,
+        }).then((res) => {
             return {
                 data: res.data,
                 headers: res.headers,
                 status: res.status
             }
         })
+        // const queryResult = await axios.get(apiObject.API_url).then((res) => {
+        //     return {
+        //         data: res.data,
+        //         headers: res.headers,
+        //         status: res.status
+        //     }
+        // })
         return {apiObject, queryResult};
     } catch (err) {
         const urlObject = new UrlObject(await dbManager.getURL(apiObject.API_url));
@@ -241,6 +254,8 @@ const updateAPI = async (apiUrlObject, apiUrlHash, retries) => {
 
 workerpool.worker({
     consumeApiUrls: async (incomingData) => {
+        let tmpTime = Date.now();
         await consumeApiUrls(incomingData);
+        console.log(`[TIME] => ${Date.now() - tmpTime} ms`);
     }
 })

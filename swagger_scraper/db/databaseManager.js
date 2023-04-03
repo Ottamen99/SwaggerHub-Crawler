@@ -105,8 +105,8 @@ exports.removeElementFromQueue = async (elem) => {
     return await db.collection('queue').deleteOne({_id: new ObjectId(elem._id)});
 }
 
-exports.countElementsInQueue = async () => {
-    return await db.collection('queue').countDocuments();
+exports.countElementsInQueueNotConsumed = async () => {
+    return await db.collection('queue').countDocuments({consumed:null});
 }
 
 exports.getQueueCursor = async () => {
@@ -117,4 +117,8 @@ exports.getQueueCursor = async () => {
 
 exports.flagConsumeElement=  async (elem) =>{
     await db.collection('queue').updateOne({_id: new ObjectId(elem._id)},{$set: {consumed:true}} )
+}
+
+exports.getQueueElementsNotConsumed = async () => {
+    return await db.collection('queue').find({consumed:null}).toArray();
 }

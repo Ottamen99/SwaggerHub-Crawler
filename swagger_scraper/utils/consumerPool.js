@@ -18,9 +18,7 @@ let messageHandler = (data) => {
     pool.exec("consumeApiUrls", [data])
         .then(async (result) => {
             await databaseManager.flagConsumeElement(data)
-            // await databaseManager.removeElementFromQueue(data)
             // await sendStats(pool.stats())
-            ipc.of[ipcConfigClient.id].emit('taskExecuted', pool.stats())
         })
         .catch((err) => {
             console.log(err)
@@ -31,9 +29,6 @@ let messageHandler = (data) => {
 
 ipc.connectTo('world', () => {
     ipc.of[ipcConfigClient.id].on('message', messageHandler);
-    ipc.of[ipcConfigClient.id].on('checkIdle', () => {
-        ipc.of[ipcConfigClient.id].emit('poolIdle', (pool.stats().totalWorkers === pool.stats().idleWorkers) && (pool.stats().pendingTasks === 0))
-    })
     ipc.of[ipcConfigClient.id].on(
         'disconnect',
         () => {

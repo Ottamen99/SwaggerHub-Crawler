@@ -42,32 +42,22 @@ const insertUrlIfNotExists = async (url) => {
             await databaseManager.addNewOwner({name: parseOwner(urlObject.url)})
         }
         await databaseManager.addURL(urlObject)
-        await databaseManager.insertNewQueueElement({
-            timestamp: Date.now(),
-            urlObject: JSON.stringify(urlObject),
-            API_url_hash: hashString(urlObject.url),
-            priority: 0
-        })
-    } else {
-        const urlObject = new UrlObject(urlInDB)
-        await databaseManager.insertNewQueueElement({
-            timestamp: Date.now(),
-            urlObject: JSON.stringify(urlObject),
-            API_url_hash: hashString(urlObject.url),
-            priority: 1
-        })
-
     }
 }
 
 exports.retrieveURLs = async () => {
+    let requestCounter = 0
     const cursor = databaseManager.getAPIProxyCursor()
     while (await cursor.hasNext()) {
         const doc = await cursor.next()
         let urls = await getAPIListUrls(doc.query);
         for (const url of urls) {
             await insertUrlIfNotExists(url)
+            requestCounter++
+            if (requestCounter >= 1172) {
+                await new Promise(resolve => setTimeout(resolve, 91000));
+                requestCounter = 0
+            }
         }
-        await new Promise(resolve => setTimeout(resolve, 100));
     }
 }
