@@ -19,6 +19,7 @@
     "node-ipc": "10.1.0",
     "node-stopwatch": "^0.0.1",
     "nodemailer": "^6.8.0",
+    "piscina": "^3.2.0",
     "request": "^2.88.2",
     "socket.io-client": "^4.6.1",
     "statman-stopwatch": "^2.13.0",

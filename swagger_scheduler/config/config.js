@@ -4,6 +4,6 @@ exports.priorities = {
     LOW: 2
 }
 
-exports.refreshTimer = 1000 * 91
+exports.refreshTimer = 1000 * 5
 
 exports.fetchLimitSize = 1172

@@ -54,10 +54,10 @@ exports.retrieveURLs = async () => {
         for (const url of urls) {
             await insertUrlIfNotExists(url)
             requestCounter++
-            if (requestCounter >= 1172) {
-                await new Promise(resolve => setTimeout(resolve, 91000));
-                requestCounter = 0
-            }
+            // if (requestCounter >= 1172) {
+            //     await new Promise(resolve => setTimeout(resolve, 91000));
+            //     requestCounter = 0
+            // }
         }
     }
 }

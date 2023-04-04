@@ -93,8 +93,8 @@ exports.getURLs = async () => {
     return await db.collection('urls').find().toArray();
 }
 
-exports.getAllNewURLs = async () => {
-    return await db.collection('urls').find({_fetch_counter: 0}).limit(fetchLimitSize).toArray();
+exports.getAllNewURLs = async (fetchLimit, offset) => {
+    return await db.collection('urls').find({_fetch_counter: 0}).skip(offset).limit(fetchLimit).toArray();
 }
 
 exports.getAllKnownURLs = async () => {
@@ -104,4 +104,16 @@ exports.getAllKnownURLs = async () => {
 // check if element is in the queue by urlObject
 exports.getQueueElement = async (urlHash) => {
     return await db.collection('queue').findOne({ API_url_hash: urlHash })
+}
+
+exports.checkNumberOfFetchedAPIs = async () => {
+    return await db.collection('urls').aggregate([{$group: {_id: null, total: {$sum: "$_fetch_counter"}}}]).toArray();
+}
+
+exports.countElementsInQueue = async () => {
+    return await db.collection('queue').countDocuments({consumed: null});
+}
+
+exports.countAllInQueue = async () => {
+    return await db.collection('queue').countDocuments();
 }

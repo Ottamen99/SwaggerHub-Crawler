@@ -252,10 +252,8 @@ const updateAPI = async (apiUrlObject, apiUrlHash, retries) => {
 //     });
 // }
 
-workerpool.worker({
-    consumeApiUrls: async (incomingData) => {
-        let tmpTime = Date.now();
-        await consumeApiUrls(incomingData);
-        console.log(`[TIME] => ${Date.now() - tmpTime} ms`);
-    }
-})
+module.exports = async ({incomingData}) => {
+    let tmpTime = Date.now();
+    await consumeApiUrls(incomingData);
+    console.log(`[TIME] => ${Date.now() - tmpTime} ms`);
+}

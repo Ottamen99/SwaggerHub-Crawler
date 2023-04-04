@@ -122,3 +122,11 @@ exports.flagConsumeElement=  async (elem) =>{
 exports.getQueueElementsNotConsumed = async () => {
     return await db.collection('queue').find({consumed:null}).toArray();
 }
+
+exports.getWaitingElements = async () => {
+    return await db.collection('watcherQueue').find().toArray();
+}
+
+exports.addToWaitingQueue = async (newElement) => {
+    return await db.collection('watcherQueue').insertOne(newElement);
+}

@@ -1,4 +1,4 @@
-const { getQueueCursor, getQueueElementsNotConsumed, countElementsInQueueNotConsumed} = require("../db/databaseManager");
+const { getQueueCursor, getQueueElementsNotConsumed, countElementsInQueueNotConsumed, getWaitingElements} = require("../db/databaseManager");
 const {ipcConfigServer} = require("../config/config");
 const db = require('../db/mongoConnector.js')();
 const ipc = require('node-ipc').default;
@@ -14,14 +14,22 @@ let changeStream;
 let queueIsEmpty = true;
 let elementsInQueue = 0;
 
+let requestSentCounter = 0;
+
 let messageBroadcast = async (change) => {
     if (change.operationType === 'insert') {
         ipc.server.broadcast('message', change.fullDocument);
-        console.log("BROADCASTING MESSAGE")
     }
 }
 
-let send = async (socket, channel, data) => {
+sendWaitingQueue = async (socket) => {
+    const waitingData = await getWaitingElements()
+    for (let i = 0; i < waitingData.length; i++) {
+        await send(socket, 'message', waitingData[i])
+    }
+}
+
+let send = (socket, channel, data) => {
     return ipc.server.emit(socket, channel, data);
 }
 
