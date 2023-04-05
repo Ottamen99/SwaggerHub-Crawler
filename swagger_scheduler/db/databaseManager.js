@@ -117,3 +117,7 @@ exports.countElementsInQueue = async () => {
 exports.countAllInQueue = async () => {
     return await db.collection('queue').countDocuments();
 }
+
+exports.flushQueue = async () => {
+    return await db.collection('queue').deleteMany({consumed: null});
+}

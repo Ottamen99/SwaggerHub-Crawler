@@ -3,7 +3,7 @@ const { MongoClient } = require('mongodb');
 
 
 // create a new MongoClient
-const client = new MongoClient(config.URI, {connectTimeoutMS: 100000, directConnection: true});
+const client = new MongoClient(config.URI, {connectTimeoutMS: 100000, directConnection: true, useUnifiedTopology: true});
 
 // connect to the server
 client.connect((err) => {

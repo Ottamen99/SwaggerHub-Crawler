@@ -2,7 +2,7 @@ const databaseManager = require('./db/databaseManager');
 const {getAllNewURLs, checkNumberOfFetchedAPIs, countElementsInQueue, countAllInQueue} = require("./db/databaseManager");
 const {hashString} = require("./utils/utilityFunctions");
 const {UrlObject} = require("./models/UrlObject");
-const {refreshTimer, priorities, fetchLimitSize} = require("./config/config");
+const {refreshTimer, priorities, fetchLimitSize, waitingTime} = require("./config/config");
 let tr = require('tor-request');
 let request = require('request');
 
@@ -33,6 +33,7 @@ let addElementsToQueue = (elements, priority) => {
     })
 }
 let checkUrlsQueue = async () => {
+    console.log("Fetch Counter: ", fetchCounter)
     const allNewUrls = await getAllNewURLs(MAX_NUMBER_OF_FETCHES - fetchCounter, fetchCounter)
     addElementsToQueue(allNewUrls, priorities.HIGH)
 
@@ -51,9 +52,10 @@ let main = async () => {
         let sum = await checkNumberOfFetchedAPIs()
         if (fetchCounter >= MAX_NUMBER_OF_FETCHES) {
             console.log('Queue is full, waiting...')
+            console.log(sum[0].total, allQueue, fetchCounter)
             if (sum[0].total % allQueue === 0) {
                 console.log('Waiting...')
-                await new Promise(resolve => setTimeout(resolve, 91000))
+                await new Promise(resolve => setTimeout(resolve, waitingTime))
                 console.log('Refreshing queue...')
                 fetchCounter = 0
             } else {

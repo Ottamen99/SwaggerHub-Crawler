@@ -6,11 +6,10 @@ const dbManager = require('../db/databaseManager.js');
 const {hashString, parseOwner} = require("./utilityFunctions");
 const {UrlObject} = require("../models/UrlObject");
 const {FetchingObject} = require("../models/FetchingObject");
-const {LOW_PRIORITY_TIMEOUT} = require("../config/constants");
+const {LOW_PRIORITY_TIMEOUT, TOR_PROXY} = require("../config/constants");
 const { SocksProxyAgent } = require('socks-proxy-agent');
 
-const workerpool = require('workerpool');
-const agent = new SocksProxyAgent('socks5h://127.0.0.1:9050');
+const agent = new SocksProxyAgent(TOR_PROXY);
 
 async function consumeApiUrls(incomingData) {
         // get corresponding api from db
@@ -53,10 +52,10 @@ async function createFetchObjAndInsertDb(apiObject, apiUrlObject, queryResult) {
 const fetchNewAPI = async (apiUrlObject, apiUrlHash, retries) => {
     let {apiObject, queryResult} = await getApiFromSwagger(apiUrlHash, retries);
     apiObject.fetching_reference = await createFetchObjAndInsertDb(apiObject, apiUrlObject, queryResult);
+    await updateInfoUrl(apiUrlObject.url, queryResult.status);
     if (queryResult.error) {
         return false; // API not found
     }
-    await updateInfoUrl(apiUrlObject.url, queryResult.status);
 
     appendQueryResults(apiObject, queryResult);
 
@@ -151,19 +150,19 @@ async function getApiFromSwagger(apiUrlHash, retries) {
             case 404:
                 console.log(`[ERROR] 404 - ${err.response.data.message}`);
                 // await kafkaManager.produceInLowPriority(urlObject, LOW_PRIORITY_TIMEOUT * (retries + 1), retries + 1, isUpdate)
-                // return {apiObject, queryResult: {status: 404, error: err.code}};
+                return {apiObject, queryResult: {status: 404, error: err.code}};
             case 400:
                 console.log(`[ERROR] 400 - ${err.response.data.message}`);
                 // await kafkaManager.produceInLowPriority(urlObject, LOW_PRIORITY_TIMEOUT * (retries + 1), retries + 1, isUpdate)
-                // return {apiObject: apiObject, queryResult: {status: 400, error: err.code}};
+                return {apiObject: apiObject, queryResult: {status: 400, error: err.code}};
             case 403:
                 console.log(`[ERROR] 403 - ${err.response.data.message}`);
                 // await handleForbiddenError();
-                // return {apiObject: apiObject, queryResult: {status: 403, error: err.code}};
+                return {apiObject: apiObject, queryResult: {status: 403, error: err.code}};
             case 500:
                 console.log(`[ERROR] 500 - ${err.response.data.message}`);
                 // await kafkaManager.produceInLowPriority(urlObject, LOW_PRIORITY_TIMEOUT * (retries + 1), retries + 1, isUpdate)
-                // return {apiObject: apiObject, queryResult: {status: 500, error: err.code}};
+                return {apiObject: apiObject, queryResult: {status: 500, error: err.code}};
         }
     }
 }
@@ -228,14 +227,14 @@ const updateAPI = async (apiUrlObject, apiUrlHash, retries) => {
 //     }
 // }
 
-// const handleForbiddenError = async () => {
-//     // pause consumers
-//     await Promise.all([mainConsumer.pause(), lowPriorityConsumer.pause()]);
-//     // wait for 60 seconds
-//     await new Promise(resolve => setTimeout(resolve, 60000));
-//     // resume consumers
-//     await Promise.all([mainConsumer.resume(), lowPriorityConsumer.resume()]);
-// }
+const handleForbiddenError = async () => {
+    // pause consumers
+    await Promise.all([mainConsumer.pause(), lowPriorityConsumer.pause()]);
+    // wait for 60 seconds
+    await new Promise(resolve => setTimeout(resolve, 60000));
+    // resume consumers
+    await Promise.all([mainConsumer.resume(), lowPriorityConsumer.resume()]);
+}
 
 // const retryConsumeApiUrls = async () => {
 //     await lowPriorityConsumer.run({

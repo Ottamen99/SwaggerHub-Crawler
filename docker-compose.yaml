@@ -13,17 +13,42 @@ services:
       - 27017:27017
     restart: always
     entrypoint: [ "/usr/bin/mongod", "--bind_ip_all", "--replSet", "dbrs" ]
-  # scraper:
-  #   container_name: swagger_scraper
-  #   build: ./swagger_scraper
-  #   restart: always
-  #   depends_on:
-  #     - mongo-database
-  #   networks:
-  #     - mongo-network
-  #   environment:
-  #     - MONGO_HOST=mongodb://mongodb:27017
-  #     - SOCKET_ADDRESS=http://swagger_ui:3000
+  tor_proxy:
+    container_name: tor_proxy
+    image: dperson/torproxy
+    restart: always
+    networks:
+      - mongo-network
+    ports:
+      - 9050:9050
+      - 9051:9051
+  scheduler:
+    container_name: scheduler
+    build: ./swagger_scheduler
+    restart: always
+    depends_on:
+      - mongo-database
+      - tor_proxy
+    networks:
+      - mongo-network
+    environment:
+      - MONGO_HOST=mongodb://mongodb:27017
+      - REFRESH_RATE=20
+  scraper:
+    container_name: swagger_scraper
+    build: ./swagger_scraper
+    restart: always
+    depends_on:
+      - mongo-database
+      - tor_proxy
+      - scheduler
+    networks:
+      - mongo-network
+    environment:
+      - MONGO_HOST=mongodb://mongodb:27017
+      - SOCKET_ADDRESS=http://swagger_ui:3000
+      - TOR_PROXY=socks5://tor_proxy:9050
+      - MAX_WORKERS=5
   # dashboard:
   #   container_name: swagger_ui
   #   build: ./swagger_ui
