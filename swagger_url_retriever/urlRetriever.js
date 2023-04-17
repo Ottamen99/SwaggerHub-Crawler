@@ -3,6 +3,10 @@ const apiManager = require("./utils/apiManager");
 const databaseManager = require('./db/databaseManager');
 const {UrlObject} = require("./models/UrlObject");
 const {parseOwner, hashString} = require("./utils/utilityFunctions");
+const {connectToMongo} = require("./db/mongoConnector");
+
+let alreadyInDbCounter = 0;
+
 
 // get list of APIs urls
 let getAPIListUrls = (url) => {
@@ -42,15 +46,19 @@ const insertUrlIfNotExists = async (url) => {
             await databaseManager.addNewOwner({name: parseOwner(urlObject.url)})
         }
         await databaseManager.addURL(urlObject)
+    } else {
+        alreadyInDbCounter++
     }
 }
 
-exports.retrieveURLs = async () => {
+retrieveURLs = async () => {
     let requestCounter = 0
     const cursor = databaseManager.getAPIProxyCursor()
     while (await cursor.hasNext()) {
         const doc = await cursor.next()
         let urls = await getAPIListUrls(doc.query);
+        // get count of urls
+        let countForAnApiProxy = urls.length
         for (const url of urls) {
             await insertUrlIfNotExists(url)
             requestCounter++
@@ -58,6 +66,30 @@ exports.retrieveURLs = async () => {
             //     await new Promise(resolve => setTimeout(resolve, 91000));
             //     requestCounter = 0
             // }
+        }
+        // get percentage of urls already in db
+        let percentage = (alreadyInDbCounter / countForAnApiProxy) * 100
+        console.log(`Percentage of already existing URLs: ${percentage}% for ${doc.query}`)
+        alreadyInDbCounter = 0
+        await databaseManager.updateAPIProxy(doc._id)
+    }
+}
+
+const RETRY_DELAY_MS = 5000; // 5 seconds
+
+exports.retrieveURLsWithRetry = async () => {
+    let retries = 1;
+    // await connectToMongo()
+    while (true) {
+        try {
+            await retrieveURLs();
+            console.log('Retrieve URLs succeeded.');
+            return;
+        } catch (err) {
+            console.log(err)
+            console.log(`Retrieve URLs failed (retrying in ${RETRY_DELAY_MS}ms) attempts ${retries}`);
+            retries++;
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
         }
     }
 }

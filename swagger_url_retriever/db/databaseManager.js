@@ -65,7 +65,7 @@ exports.getAPIProxy = async (query) => {
 }
 
 exports.getAPIProxyCursor = () => {
-    return db.collection('proxyUrls').find();
+    return db.collection('proxyUrls').find({processed: null});
 }
 
 exports.addNewOwner = async (newOwner) => {
@@ -82,4 +82,9 @@ exports.getOwnerIfExists = async (name) => {
 exports.insertNewQueueElement = async (newQueueElement) => {
     await new Promise(resolve => setTimeout(resolve, 1000));
     return await db.collection('queue').insertOne(newQueueElement);
+}
+
+exports.updateAPIProxy = async (id) => {
+    const options = { upsert: false};
+    return await db.collection('proxyUrls').updateOne({_id: id}, { $set: {processed: true} }, options);
 }

@@ -24,10 +24,10 @@ const createAPIObject = (api) => {
 const addAPI = async (apiObject) => {
     const apiExists = await databaseManager.getAPI(apiObject.API_url_hash);
     if (apiExists) {
-        console.log(`API ${apiObject.name} already exists in the database`);
+        // console.log(`API ${apiObject.name} already exists in the database`);
     } else {
         const result = await databaseManager.addAPI(apiObject);
-        console.log(`API ${apiObject.name} added to the database with the following id: ${result.insertedId}`);
+        // console.log(`API ${apiObject.name} added to the database with the following id: ${result.insertedId}`);
     }
 }
 

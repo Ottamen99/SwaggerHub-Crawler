@@ -16,7 +16,8 @@ let main = async () => {
     // Refresh the Tor session every 30 seconds
     console.log(tr.TorControlPort)
     setInterval(() => {
-        tr.newTorSession(function (err, done) {
+        tr.renewTorSession(function (err, done) {
+            console.log('New Tor session for request ' + done)
             if (err) throw err;
         });
         tr.request({
@@ -32,7 +33,7 @@ let main = async () => {
                 console.error('Error getting IP address:', error);
             }
         });
-    }, 30000);
+    }, 31000);
 }
 
 main()
