@@ -5,6 +5,8 @@ services:
     container_name: tor_proxy
     image: dperson/torproxy
     restart: always
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - mongo-network
     ports:
@@ -15,12 +17,12 @@ services:
     build: ./swagger_scheduler
     restart: always
     depends_on:
-      - mongo-database
+      # - mongo-database
       - tor_proxy
     networks:
       - mongo-network
     environment:
-      - MONGO_HOST=mongodb://localhost:27017
+      - MONGO_HOST=mongodb://host.docker.internal:27017
       - REFRESH_RATE=20
   # scraper:
   #   container_name: swagger_scraper
