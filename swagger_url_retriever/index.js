@@ -1,8 +1,25 @@
 const urlRetriever = require("./urlRetriever");
-const {generateQueries} = require("./utils/queryManager");
+const {generateQuery} = require("./utils/queryManager");
+const {sort_by, order, spec} = require("./config/queries");
 
 let main = async () => {
-    await generateQueries()
+    // await generateQuery(
+    //     {
+    //         sort_by: sort_by,
+    //         order: order,
+    //         spec: spec,
+    //         // owner: ["fehguy"]
+    //     }
+    // )
+    await generateQuery(
+        {
+            // sort_by: sort_by,
+            // order: order,
+            // spec: spec,
+            owner: ["fehguy"]
+        }
+    )
+
     await urlRetriever.retrieveURLsWithRetry()
 }
 
