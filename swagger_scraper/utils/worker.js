@@ -146,6 +146,7 @@ async function getApiFromSwagger(apiUrlHash, retries) {
     } catch (err) {
         const urlObject = new UrlObject(await dbManager.getURL(apiObject.API_url));
         const isUpdate = !!apiObject.fetching_reference;
+        console.log(err)
         switch (err.response.status) {
             case 404:
                 console.log(`[ERROR] 404 - ${err.response.data.message}`);

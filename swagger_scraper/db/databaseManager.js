@@ -37,7 +37,7 @@ exports.truncate = async () => {
 // update an api in the database, it finds the api by its API_url_hash
 exports.updateAPI = async (filter, newApi) => {
     const options = { upsert: false};
-    return await db.collection('apis').updateOne(filter, { $set: newApi }, options);
+    return await db.collection('apis').updateOne(filter, { $set: newApi }, options).catch(err => console.log(err));
 }
 
 exports.updateFetchingRefAPI = async (filter, newMeta) => {

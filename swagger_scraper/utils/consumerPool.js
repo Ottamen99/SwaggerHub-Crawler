@@ -1,11 +1,9 @@
 const ipc = require('node-ipc').default;
-const workerPool = require('workerpool')
 const databaseManager = require('../db/databaseManager')
 const {sendStats} = require("./wsManager");
 const {ipcConfigClient, workerPoolConfig} = require("../config/config");
 const Piscina = require('piscina');
 
-let firstDrain = true;
 
 const pool = new Piscina({
     filename: __dirname + '/worker.js',
