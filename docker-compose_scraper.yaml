@@ -23,21 +23,20 @@ services:
     environment:
       - MONGO_HOST=mongodb://localhost:27017
       - REFRESH_RATE=20
-  # scraper:
-  #   container_name: swagger_scraper
-  #   build: ./swagger_scraper
-  #   restart: always
-  #   depends_on:
-  #     - mongo-database
-  #     - tor_proxy
-  #     - scheduler
-  #   networks:
-  #     - mongo-network
-  #   environment:
-  #     - MONGO_HOST=mongodb://mongodb:27017
-  #     - SOCKET_ADDRESS=http://swagger_ui:3000
-  #     - TOR_PROXY=socks5://tor_proxy:9050
-  #     - MAX_WORKERS=5
+  scraper:
+    container_name: swagger_scraper
+    build: ./swagger_scraper
+    restart: always
+    depends_on:
+      # - mongo-database
+      - tor_proxy
+      - scheduler
+    network_mode: "host"
+    environment:
+      - MONGO_HOST=mongodb://localhost:27017
+      - SOCKET_ADDRESS=http://swagger_ui:3000
+      - TOR_PROXY=socks5://tor_proxy:9050
+      - MAX_WORKERS=5
   # dashboard:
   #   container_name: swagger_ui
   #   build: ./swagger_ui
