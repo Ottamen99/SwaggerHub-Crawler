@@ -19,10 +19,9 @@ services:
     depends_on:
       # - mongo-database
       - tor_proxy
-    networks:
-      - mongo-network
+    network_mode: "host"
     environment:
-      - MONGO_HOST=mongodb://host.docker.internal:27017
+      - MONGO_HOST=mongodb://localhost:27017
       - REFRESH_RATE=20
   # scraper:
   #   container_name: swagger_scraper
