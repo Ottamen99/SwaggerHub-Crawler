@@ -8,15 +8,11 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     network_mode: "host"
-    ports:
-      - 9050:9050
-      - 9051:9051
   scheduler:
     container_name: scheduler
     build: ./swagger_scheduler
     restart: always
     depends_on:
-      # - mongo-database
       - tor_proxy
     network_mode: "host"
     environment:
@@ -27,14 +23,13 @@ services:
     build: ./swagger_scraper
     restart: always
     depends_on:
-      # - mongo-database
       - tor_proxy
       - scheduler
     network_mode: "host"
     environment:
       - MONGO_HOST=mongodb://localhost:27017
       - SOCKET_ADDRESS=http://swagger_ui:3000
-      - TOR_PROXY=socks5://tor_proxy:9050
+      - TOR_PROXY=socks5://localhost:9050
       - MAX_WORKERS=5
   # dashboard:
   #   container_name: swagger_ui
