@@ -7,8 +7,7 @@ services:
     restart: always
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    networks:
-      - mongo-network
+    network_mode: "host"
     ports:
       - 9050:9050
       - 9051:9051
@@ -48,7 +47,3 @@ services:
   #     - scraper
   #   networks:
   #     - mongo-network
-
-networks:
-  mongo-network:
-    driver: bridge
