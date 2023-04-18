@@ -79,7 +79,6 @@ const RETRY_DELAY_MS = 5000; // 5 seconds
 
 exports.retrieveURLsWithRetry = async () => {
     let retries = 1;
-    // await connectToMongo()
     while (true) {
         try {
             await retrieveURLs();

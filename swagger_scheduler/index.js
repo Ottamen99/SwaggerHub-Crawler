@@ -5,6 +5,7 @@ const {UrlObject} = require("./models/UrlObject");
 const {refreshTimer, priorities, fetchLimitSize, waitingTime} = require("./config/config");
 let tr = require('tor-request');
 let request = require('request');
+const {connectToMongo} = require("./db/mongoConnector");
 
 
 tr.setTorAddress('127.0.0.1', 9050);
@@ -19,7 +20,7 @@ const MAX_NUMBER_OF_FETCHES = fetchLimitSize;
 let addElementsToQueue = (elements, priority) => {
     elements.forEach( async (element) => {
         const urlObject = new UrlObject(element)
-        let exists = await databaseManager.getQueueElement(hashString(urlObject.url))
+        let exists = await databaseManager.getQueueElement(hashString(urlObject.url)).catch(err => console.log(err))
         if (!exists) {
             await databaseManager.insertNewQueueElement({
                 timestamp: Date.now(),
@@ -34,7 +35,7 @@ let addElementsToQueue = (elements, priority) => {
 }
 let checkUrlsQueue = async () => {
     console.log("Fetch Counter: ", fetchCounter)
-    const allNewUrls = await getAllNewURLs(MAX_NUMBER_OF_FETCHES - fetchCounter, fetchCounter)
+    const allNewUrls = await getAllNewURLs(MAX_NUMBER_OF_FETCHES - fetchCounter, fetchCounter).catch(err => console.log(err))
     addElementsToQueue(allNewUrls, priorities.HIGH)
 
     // FOR URL UPDATE
@@ -42,9 +43,7 @@ let checkUrlsQueue = async () => {
     // addElementsToQueue(allKnownUrls, priorities.MEDIUM)
 }
 
-
-let main = async () => {
-    console.log('Started scheduler')
+let runSchedule = async () => {
     console.log(`Refresh timer set at: ${refreshTimer / 1000}s`)
     fetchCounter = await countElementsInQueue()
     let allQueue = await countAllInQueue()
@@ -65,10 +64,60 @@ let main = async () => {
             console.log('Checking queue...')
             await checkUrlsQueue();
         }
-        setTimeout(runScheduler, refreshTimer);
+        setTimeout(() => {
+            runScheduler().catch(async (err) => {
+                let retries = 1;
+                while (true) {
+                    try {
+                        await runSchedule();
+                        console.log('Scheduler started successfully')
+                        return;
+                    } catch (err) {
+                        console.log(`Error starting scheduler, retrying in ${RETRY_DELAY_MS / 1000}s...`);
+                        retries++;
+                        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+                    }
+                }
+            });
+        }, refreshTimer);
     };
-    setTimeout(runScheduler, refreshTimer);
+    setTimeout(() => {
+        runScheduler().catch(async (err) => {
+            let retries = 1;
+            while (true) {
+                try {
+                    await runSchedule();
+                    console.log('Scheduler started successfully')
+                    return;
+                } catch (err) {
+                    console.log(`Error starting scheduler, retrying in ${RETRY_DELAY_MS / 1000}s...`);
+                    retries++;
+                    await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+                }
+            }
+        });
+    }, refreshTimer);
 }
+
+const RETRY_DELAY_MS = 5000; // 5 seconds
+
+let main = async () => {
+    let retries = 1;
+    while (true) {
+        try {
+            await runSchedule();
+            console.log('Scheduler started successfully')
+            return;
+        } catch (err) {
+            console.log(err)
+            console.log(`Error starting scheduler, retrying in ${RETRY_DELAY_MS / 1000}s...`);
+            retries++;
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+        }
+    }
+}
+
+main()
     // Refresh the Tor session every 30 seconds
     // console.log(tr.TorControlPort)
     // setInterval(() => {
@@ -98,4 +147,3 @@ let main = async () => {
     //     });
     // }, 5000);
 
-main()
