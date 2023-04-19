@@ -66,7 +66,6 @@ let sendAtStartWithRetry = async (socket) => {
             console.log('Sending queue succeeded.');
             return;
         } catch (err) {
-            console.log(err)
             console.log(`Sending queue failed (retrying in ${RETRY_DELAY_MS}ms) attempts ${retries}`);
             retries++;
             await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));

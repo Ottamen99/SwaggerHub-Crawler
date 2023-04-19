@@ -109,7 +109,6 @@ let main = async () => {
             console.log('Scheduler started successfully')
             return;
         } catch (err) {
-            console.log(err)
             console.log(`Error starting scheduler, retrying in ${RETRY_DELAY_MS / 1000}s...`);
             retries++;
             await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
