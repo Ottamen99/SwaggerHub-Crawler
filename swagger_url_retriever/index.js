@@ -13,10 +13,10 @@ let main = async () => {
     // )
     await generateQuery(
         {
-            sort_by: sort_by,
+            // sort_by: sort_by,
             // order: order,
             // spec: spec,
-            // owner: ["fehguy"]
+            owner: ["fehguy"]
         }
     )
 
