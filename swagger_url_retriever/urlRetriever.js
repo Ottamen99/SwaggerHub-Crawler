@@ -85,7 +85,6 @@ exports.retrieveURLsWithRetry = async () => {
             console.log('Retrieve URLs succeeded.');
             return;
         } catch (err) {
-            console.log(err)
             console.log(`Retrieve URLs failed (retrying in ${RETRY_DELAY_MS}ms) attempts ${retries}`);
             retries++;
             await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));

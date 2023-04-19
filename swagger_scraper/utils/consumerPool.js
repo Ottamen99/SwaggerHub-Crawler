@@ -21,14 +21,28 @@ let messageHandler = (data) => {
         .then(async (result) => {
             await databaseManager.flagConsumeElement(data)
             // await sendStats(pool.stats())
-        })
-        .catch((err) => {
-            console.log(err)
-        })
+        }).catch((err) => {
+        console.log("Error in messageHandler")
+    })
+}
+
+let handleMessageWithRetry = async (data) => {
+    let retries = 1;
+    while (true) {
+        try {
+            await messageHandler(data);
+            console.log('Handling message succeeded.');
+            return;
+        } catch (err) {
+            console.log(`Handling message failed (retrying in ${workerPoolConfig.retryDelay}ms) attempts ${retries}`);
+            retries++;
+            await new Promise(resolve => setTimeout(resolve, workerPoolConfig.retryDelay));
+        }
+    }
 }
 
 ipc.connectTo('world', () => {
-    ipc.of[ipcConfigClient.id].on('message', messageHandler);
+    ipc.of[ipcConfigClient.id].on('message', handleMessageWithRetry);
     ipc.of[ipcConfigClient.id].on(
         'disconnect',
         () => {
