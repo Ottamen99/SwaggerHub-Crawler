@@ -69,7 +69,7 @@ let runSchedule = async () => {
                 let retries = 1;
                 while (true) {
                     try {
-                        await runSchedule();
+                        await runScheduler();
                         console.log('Scheduler started successfully')
                         return;
                     } catch (err) {
@@ -86,7 +86,7 @@ let runSchedule = async () => {
             let retries = 1;
             while (true) {
                 try {
-                    await runSchedule();
+                    await runScheduler();
                     console.log('Scheduler started successfully')
                     return;
                 } catch (err) {
