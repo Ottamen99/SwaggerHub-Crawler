@@ -116,6 +116,7 @@ let main = async () => {
     }
 }
 
+console.log("THIS IS A LOG FOR DOCKER")
 main()
     // Refresh the Tor session every 30 seconds
     // console.log(tr.TorControlPort)
