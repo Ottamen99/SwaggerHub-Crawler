@@ -52,7 +52,7 @@ async function createFetchObjAndInsertDb(apiObject, apiUrlObject, queryResult) {
 const fetchNewAPI = async (apiUrlObject, apiUrlHash, retries) => {
     let {apiObject, queryResult} = await getApiFromSwagger(apiUrlHash, retries);
     apiObject.fetching_reference = await createFetchObjAndInsertDb(apiObject, apiUrlObject, queryResult);
-    // await updateInfoUrl(apiUrlObject.url, queryResult.status);
+    await updateInfoUrl(apiUrlObject.url, queryResult.status);
     if (queryResult.error) {
         return false; // API not found
     }
@@ -67,7 +67,7 @@ const fetchNewAPI = async (apiUrlObject, apiUrlHash, retries) => {
     console.log(`${update.matchedCount} document(s) matched the filter criteria.`);
     console.log(`${update.modifiedCount} document(s) were updated.`);
 
-    await updateInfoUrl(apiUrlObject.url, queryResult.status);
+    // await updateInfoUrl(apiUrlObject.url, queryResult.status);
     await new Promise((resolve) => setTimeout(resolve, 250));
 
     return true; // API added successfully

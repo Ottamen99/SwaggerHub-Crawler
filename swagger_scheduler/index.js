@@ -47,6 +47,8 @@ let runSchedule = async () => {
     console.log(`Refresh timer set at: ${refreshTimer / 1000}s`)
     fetchCounter = await countElementsInQueue()
     let allQueue = await countAllInQueue()
+    console.log("All queue: ", allQueue)
+    console.log("Fetch counter: ", fetchCounter)
     const runScheduler = async () => {
         let sum = await checkNumberOfFetchedAPIs()
         if (fetchCounter >= MAX_NUMBER_OF_FETCHES) {
@@ -70,7 +72,7 @@ let runSchedule = async () => {
                 while (true) {
                     try {
                         await runScheduler();
-                        console.log('Scheduler started successfully')
+                        console.log('Scheduler started successfully from call back 1')
                         return;
                     } catch (err) {
                         console.log(`Error starting scheduler, retrying in ${RETRY_DELAY_MS / 1000}s...`);
@@ -87,7 +89,7 @@ let runSchedule = async () => {
             while (true) {
                 try {
                     await runScheduler();
-                    console.log('Scheduler started successfully')
+                    console.log('Scheduler started successfully from call back 2')
                     return;
                 } catch (err) {
                     console.log(`Error starting scheduler, retrying in ${RETRY_DELAY_MS / 1000}s...`);

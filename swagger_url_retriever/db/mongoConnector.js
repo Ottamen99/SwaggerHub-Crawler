@@ -3,7 +3,12 @@ const { MongoClient } = require('mongodb');
 
 
 // create a new MongoClient
-const client = new MongoClient(config.URI, { directConnection: true, useNewUrlParser: true, useUnifiedTopology: true});
+const client = new MongoClient(config.URI, {
+    directConnection: true,
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    maxIdleTimeMS: 86400000 // 24 hours
+});
 
 let connectToMongo = async (retryInterval = 5000) => {
     let attempt = 1;

@@ -37,13 +37,6 @@ let messageBroadcastWithRetry = async (change) => {
     }
 }
 
-// sendWaitingQueue = async (socket) => {
-//     const waitingData = await getWaitingElements()
-//     for (let i = 0; i < waitingData.length; i++) {
-//         await send(socket, 'message', waitingData[i])
-//     }
-// }
-
 let send = (socket, channel, data) => {
     return ipc.server.emit(socket, channel, data);
 }
@@ -78,12 +71,27 @@ const options = {
     batchSize: 1000,
 };
 
-let onServerStart = async () => {
+let onServerStart = () => {
     changeStream = collection.watch(options);
     changeStream.on('change', messageBroadcastWithRetry)
     changeStream.on('error', (err) => {
         console.log("Unable to get change stream: " + err.message)
     })
+}
+
+let onServerStartWithRetry = async () => {
+    let retries = 1;
+    while (true) {
+        try {
+            await onServerStart();
+            console.log('Starting server succeeded.');
+            return;
+        } catch (err) {
+            console.log(`Starting server failed (retrying in ${RETRY_DELAY_MS}ms) attempts ${retries}`);
+            retries++;
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+        }
+    }
 }
 
 let handleNewConnection = async (socket) => {
@@ -117,7 +125,7 @@ let handleNewConnectionWithRetry = async (socket) => {
 
 
 ipc.serve(() => {
-    ipc.server.on('start', onServerStart)
+    ipc.server.on('start', onServerStartWithRetry)
     ipc.server.on('connect', handleNewConnectionWithRetry)
     ipc.server.on('socket.disconnected', (socket, destroyedSocketID) => {
         ipc.log('client ' + destroyedSocketID + ' has disconnected!');
