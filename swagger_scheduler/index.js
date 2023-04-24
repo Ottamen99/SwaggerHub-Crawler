@@ -4,8 +4,7 @@ const {hashString} = require("./utils/utilityFunctions");
 const {UrlObject} = require("./models/UrlObject");
 const {refreshTimer, priorities, fetchLimitSize, waitingTime} = require("./config/config");
 let tr = require('tor-request');
-let request = require('request');
-const {connectUsingMongoose} = require("./db/mongoConnector");
+const {connectUsingMongoose, closeConnection} = require("./db/mongoConnector");
 
 
 tr.setTorAddress('127.0.0.1', 9050);
@@ -72,25 +71,32 @@ let runSchedule = async () => {
             }
             setTimeout(runScheduler, refreshTimer);
         } catch (err) {
+            // console.log(err)
             console.log("Something went wrong with the scheduler")
         }
     };
     setTimeout(runScheduler, 0);
 }
 
+let handleDisconnect = async () => {
+    console.log("Mongo disconnected")
+    await closeConnection(dbClient).catch(() => console.log("Error while closing connection"));
+    dbClient = await connectUsingMongoose()
+    // wait for ready state
+    while (dbClient.readyState !== 1) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+    }
+    dbClient.on('disconnected', handleDisconnect)
+    await runSchedule()
+}
+
 let main = async () => {
     console.log(`Refresh timer set at: ${refreshTimer / 1000}s`)
     dbClient = await connectUsingMongoose()
-    dbClient.on('reconnected', async () => {
-        await runSchedule()
-    })
     dbClient.on('error', (err) => {
         console.log("Something went wrong with mongo: " + err.message)
     })
-    dbClient.on('disconnected', async () => {
-        console.log("Mongo disconnected")
-        dbClient = await connectUsingMongoose()
-    })
+    dbClient.on('disconnected', handleDisconnect)
     fetchCounter = await countElementsInQueue(dbClient)
     await runSchedule();
 }

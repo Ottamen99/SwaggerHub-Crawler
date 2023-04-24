@@ -273,21 +273,35 @@ const handleForbiddenError = async () => {
 //     });
 // }
 
+const handleDisconnect = async (incomingData) => {
+    if (endFlag) return;
+    console.log("Mongo disconnected")
+    await closeConnection(dbClient).catch(() => console.log("Error while closing connection"));
+    dbClient = await connectUsingMongoose()
+    // wait for ready state
+    while (dbClient.readyState !== 1) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    dbClient.on('disconnected', () => handleDisconnect(incomingData));
+    await processIncomingData(incomingData);
+}
+
+const processIncomingData = async (incomingData) => {
+    let tmpTime = Date.now();
+    await consumeApiUrls(incomingData);
+    await flagConsumeElement(dbClient, incomingData).catch(() => console.log("Error while flagging element"));
+    endFlag = true;
+    await closeConnection(dbClient).catch(() => console.log("Error while closing connection"));
+    console.log(`[TIME] => ${Date.now() - tmpTime} ms`);
+}
+
+
 module.exports = async ({incomingData}) => {
     endFlag = false;
-    let tmpTime = Date.now();
     dbClient = await connectUsingMongoose();
     dbClient.on('error', (err) => {
         console.log("Something went wrong with mongo: " + err.message)
     })
-    dbClient.on('disconnected', async () => {
-        if (endFlag) return;
-        console.log("Mongo disconnected")
-        dbClient = await connectUsingMongoose()
-    })
-    await consumeApiUrls(incomingData);
-    await flagConsumeElement(dbClient, incomingData);
-    endFlag = true;
-    await closeConnection(dbClient).catch(() => console.log("Error while closing connection"));
-    console.log(`[TIME] => ${Date.now() - tmpTime} ms`);
+    dbClient.on('disconnected', () => handleDisconnect(incomingData));
+    await processIncomingData(incomingData);
 }

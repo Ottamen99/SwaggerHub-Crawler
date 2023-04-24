@@ -23,7 +23,7 @@ let connectUsingMongoose = async (retryInterval = 5000) => {
     }
 }
 let closeConnection = async (client) => {
-    await client.close()
+    await client.close({ force: true })
 }
 
 module.exports.connectUsingMongoose = connectUsingMongoose;

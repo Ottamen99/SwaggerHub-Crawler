@@ -30,21 +30,6 @@ let messageBroadcast = async (change) => {
     }
 }
 
-// let messageBroadcastWithRetry = async (change) => {
-//     let retries = 1;
-//     while (true) {
-//         try {
-//             await messageBroadcast(change);
-//             // console.log('Broadcasting message succeeded.');
-//             return;
-//         } catch (err) {
-//             console.log(`Broadcasting message failed (retrying in ${ipcConfigServer.retryDelay}ms) attempts ${retries}`);
-//             retries++;
-//             await new Promise(resolve => setTimeout(resolve, ipcConfigServer.retryDelay));
-//         }
-//     }
-// }
-
 let send = (socket, channel, data) => {
     return ipc.server.emit(socket, channel, data);
 }

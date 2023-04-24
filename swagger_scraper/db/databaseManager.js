@@ -1,16 +1,5 @@
 const config = require('./dbConfig')
 const {ObjectId} = require("mongodb");
-const mongoose = require("mongoose");
-
-const QueueSchema = mongoose.Schema({
-    timestamp: Number,
-    urlObject: String,
-    API_url_hash: String,
-    priority: Number,
-    consumed: Boolean,
-}, { collection: 'queue' });
-
-const QueueModel = mongoose.model('Queue', QueueSchema);
 
 // list all databases
 exports.getDatabases = async (client) => {
@@ -127,7 +116,7 @@ exports.getQueueCursor = async (client) => {
 }
 
 
-exports.flagConsumeElement=  async (client, elem) =>{
+exports.flagConsumeElement = async (client, elem) =>{
     await client.db.collection('queue').updateOne({_id: new ObjectId(elem._id)},{$set: {consumed:true}} )
 }
 
@@ -138,5 +127,3 @@ exports.getQueueElementsNotConsumed = async (client) => {
 exports.getElementToCheck = async (client, elem) => {
     return await client.db.collection('urls').find({_id: new ObjectId(elem._id)})
 }
-
-module.exports.QueueModel = QueueModel;

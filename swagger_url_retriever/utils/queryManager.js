@@ -3,7 +3,7 @@ const dbManager = require("../db/databaseManager.js");
 const tqdm = require('tqdm');
 const queryConfig = require('../config/queries')
 
-exports.generateQuery = async ({ ...restParams } = {}) =>{
+exports.generateQuery = async (client, { ...restParams } = {}) =>{
     const baseUrl = "https://app.swaggerhub.com/apiproxy/specs?type=API&limit=100&";
     const paramArrays = { ...restParams };
     const cartesianProduct = getCartesianProduct(paramArrays);
@@ -17,9 +17,9 @@ exports.generateQuery = async ({ ...restParams } = {}) =>{
     let pushedQueries = 0;
     for (let i = 0; i < queries.length; i++){
         const query = queries[i];
-        let exists = await dbManager.getAPIProxy(query)
+        let exists = await dbManager.getAPIProxy(client, query)
         if (!exists) {
-            await dbManager.addAPIProxy({query: query})
+            await dbManager.addAPIProxy(client, {query: query})
             pushedQueries++;
         }
     }
