@@ -21,9 +21,9 @@ let handleDisconnect = async () => {
         await generateQuery(dbClient,
             {
                 // sort_by: sort_by,
-                // order: order,
+                order: order,
                 // spec: spec,
-                owner: ["fehguy"]
+                // owner: ["fehguy"]
             }
         )
     }
@@ -37,13 +37,13 @@ let main = async () => {
     dbClient.on('disconnected', () => {
         handleDisconnect()
     })
-    // await generateQuery(dbClient,
-    //     {
-    //         // sort_by: sort_by,
-    //         // order: order,
-    //         // spec: spec,
-    //         owner: ["fehguy"]
-    //     })
+    await generateQuery(dbClient,
+        {
+            // sort_by: sort_by,
+            order: order,
+            // spec: spec,
+            // owner: ["fehguy"]
+        })
     await urlRetriever.retrieveURLs(dbClient)
     // generationFinished = true;
 
@@ -69,7 +69,10 @@ let main = async () => {
 
 const RETRY_DELAY_MS = 5000;
 
-main()
+main().then(() => {
+    console.log('Finished');
+    process.exit(0);
+})
 //     .then(() => {
 //     console.log('Finished');
 //     process.exit(0);

@@ -83,6 +83,11 @@ exports.insertNewQueueElement = async (client, newQueueElement) => {
     return await client.db.collection('queue').insertOne(newQueueElement);
 }
 
+exports.insertNewQueueElements = async (client, newQueueElements) => {
+    if (newQueueElements.length === 0) return;
+    return await client.db.collection('queue').insertMany(newQueueElements);
+}
+
 exports.getURLsCursor = (client) => {
     return client.db.collection('urls').find();
 }

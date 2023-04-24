@@ -32,6 +32,9 @@ const addAPI = async (client, apiObject) => {
 }
 
 const updateApis = async (client, apiObjects) => {
+    if (apiObjects.length === 0) {
+        return;
+    }
     await databaseManager.addAPIs(client, apiObjects);
 }
 

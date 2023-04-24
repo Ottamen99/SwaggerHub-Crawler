@@ -18,28 +18,32 @@ let dbClient;
 
 const MAX_NUMBER_OF_FETCHES = fetchLimitSize;
 
-let addElementsToQueue = (elements, priority) => {
-    elements.forEach( async (element) => {
+let addElementsToQueue = async (elements, priority) => {
+    let newElems = []
+    let cnt = 0
+    for (const element of elements) {
         const urlObject = new UrlObject(element)
         let exists = await databaseManager.getQueueElement(dbClient, hashString(urlObject.url)).catch(err => console.log(err))
         if (!exists) {
-            await databaseManager.insertNewQueueElement(dbClient, {
+            newElems.push({
                 timestamp: Date.now(),
                 urlObject: JSON.stringify(urlObject),
                 API_url_hash: hashString(urlObject.url),
                 priority: priority
             })
-            fetchCounter++
+            cnt++
             // await new Promise(resolve => setTimeout(resolve, 100))
         }
-    })
+    }
+    await databaseManager.insertNewQueueElements(dbClient, newElems).catch(err => console.log(err))
+    fetchCounter += cnt
 }
 let checkUrlsQueue = async () => {
     const allNewUrls = await getAllNewURLs(dbClient, MAX_NUMBER_OF_FETCHES - fetchCounter, allQueue).catch(err => console.log(err))
     console.log("Fetch counter: ", fetchCounter)
     console.log("All queue: ", allQueue)
     console.log("All new urls: ", allNewUrls.length)
-    addElementsToQueue(allNewUrls, priorities.HIGH)
+    await addElementsToQueue(allNewUrls, priorities.HIGH)
 
     // FOR URL UPDATE
     // const allKnownUrls = await databaseManager.getAllKnownURLs()

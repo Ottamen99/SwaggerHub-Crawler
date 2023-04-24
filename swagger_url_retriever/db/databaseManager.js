@@ -1,11 +1,5 @@
 exports.addAPIs = (client, apiObjects) => {
-    return client.db.collection('apis').updateMany(
-        { _API_url_hash: {$in: apiObjects.map(ap => {
-            return ap._API_url_hash;
-        })} },  // filter
-        { $set: {key: "stuff"} },  // update
-        { upsert: true }  // options
-    );
+    return client.db.collection('apis').insertMany(apiObjects);
 }
 
 

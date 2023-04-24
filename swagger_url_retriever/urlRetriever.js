@@ -14,8 +14,8 @@ let getAPIListUrls = (client, url) => {
             method: 'get',
             url: url
         }).then((res) => {
-            updateApis(client, res.data.apis).then(_ => {
-                resolve(res.data.apis);
+            updateApis(client, res.data.apis.map(api => apiManager.createAPIObject(api))).then(_ => {
+                resolve(res.data.apis.map(api => api.properties[0].url));
             }).catch(err => {
                 reject(err);
             })
