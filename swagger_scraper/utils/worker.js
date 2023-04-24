@@ -8,8 +8,14 @@ const {UrlObject} = require("../models/UrlObject");
 const {FetchingObject} = require("../models/FetchingObject");
 const {LOW_PRIORITY_TIMEOUT, TOR_PROXY} = require("../config/constants");
 const { SocksProxyAgent } = require('socks-proxy-agent');
+const {closeConnection, hasBeenClosed, connectToMongo, connectUsingMongoose} = require("../db/mongoConnector");
+const {getElementToCheck, flagConsumeElement} = require("../db/databaseManager");
+const databaseManager = require("../db/databaseManager");
 
 const agent = new SocksProxyAgent(TOR_PROXY);
+let dbClient
+
+let endFlag = false
 
 async function consumeApiUrls(incomingData) {
         // get corresponding api from db
@@ -17,9 +23,24 @@ async function consumeApiUrls(incomingData) {
 
         switch (incomingData.priority) {
             case config.priorities.HIGH:
-                const resultUrlObjectHigh = new UrlObject(JSON.parse(incomingData.urlObject));
-                console.log('\n\nPartition high priority');
-                await fetchNewAPI(resultUrlObjectHigh, incomingData.API_url_hash)
+                try {
+                    const resultUrlObjectHigh = new UrlObject(JSON.parse(incomingData.urlObject));
+                    console.log('\n\nPartition high priority');
+                    await fetchNewAPI(resultUrlObjectHigh, incomingData.API_url_hash)
+                } catch (e) {
+                    // Wait for the connection to be established
+                    while (dbClient.readyState !== 1) {
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                    }
+                    console.log("Connection established")
+                    // convert data to Url object
+                    const urlObj = new UrlObject(JSON.parse(incomingData.urlObject))
+                    const dbCheckObj = await getElementToCheck(dbClient, urlObj)
+                    if (urlObj._fetch_counter < dbCheckObj._fetch_counter) {
+                        console.log('Message already consumed, flagging as consumed...')
+                        await databaseManager.flagConsumeElement(dbClient, incomingData);
+                    }
+                }
                 break;
             case config.priorities.MEDIUM:
                 const resultUrlObjectMedium = new UrlObject(JSON.parse(incomingData.urlObject));
@@ -45,7 +66,7 @@ async function createFetchObjAndInsertDb(apiObject, apiUrlObject, queryResult) {
     }
 
     // Add to database
-    const inserted = await dbManager.addFetch(fetchObject);
+    const inserted = await dbManager.addFetch(dbClient, fetchObject);
     return inserted.insertedId
 }
 
@@ -63,7 +84,7 @@ const fetchNewAPI = async (apiUrlObject, apiUrlHash, retries) => {
 
     // Update API object in db
     const filter = { _API_url_hash: apiObject.API_url_hash };
-    const update = await dbManager.updateAPI(filter, apiObject);
+    const update = await dbManager.updateAPI(dbClient, filter, apiObject);
     console.log(`${update.matchedCount} document(s) matched the filter criteria.`);
     console.log(`${update.modifiedCount} document(s) were updated.`);
 
@@ -103,7 +124,7 @@ function appendQueryResults(apiObject, queryResult) {
 }
 
 async function updateInfoUrl(apiUrl, queryResultStatus) {
-    const url = await dbManager.getURL(apiUrl);
+    const url = await dbManager.getURL(dbClient, apiUrl);
     const urlObject = new UrlObject(url);
 
     urlObject.fetch_counter += 1;
@@ -115,14 +136,14 @@ async function updateInfoUrl(apiUrl, queryResultStatus) {
 
     // Update URL object in db
     const filter_url = {_url: urlObject.url};
-    const update_url = await dbManager.updateURL(filter_url, urlObject);
+    const update_url = await dbManager.updateURL(dbClient, filter_url, urlObject);
     console.log(`[URL] => ${update_url.matchedCount} document(s) matched the filter criteria.`);
     console.log(`[URL] => ${update_url.modifiedCount} document(s) were updated.`);
 }
 
 async function getApiFromSwagger(apiUrlHash, retries) {
     // Get API object from db and convert it to ApiObject
-    const api = await dbManager.getAPI(apiUrlHash);
+    const api = await dbManager.getAPI(dbClient, apiUrlHash);
     let apiObject = new ApiObject(api);
     try {
         const queryResult = await axios({
@@ -145,7 +166,7 @@ async function getApiFromSwagger(apiUrlHash, retries) {
         // })
         return {apiObject, queryResult};
     } catch (err) {
-        const urlObject = new UrlObject(await dbManager.getURL(apiObject.API_url));
+        const urlObject = new UrlObject(await dbManager.getURL(dbClient, apiObject.API_url));
         const isUpdate = !!apiObject.fetching_reference;
         switch (err.response.status) {
             case 404:
@@ -177,7 +198,7 @@ const updateAPI = async (apiUrlObject, apiUrlHash, retries) => {
     const apiSwaggerObject = apiObject;
     await updateInfoUrl(apiUrlObject.url, queryResult.status);
 
-    const apiFromDb = await dbManager.getLastUpdatedApi(apiSwaggerObject.API_url_hash);
+    const apiFromDb = await dbManager.getLastUpdatedApi(dbClient, apiSwaggerObject.API_url_hash);
     const apiFromDbObject = new ApiObject(apiFromDb[apiFromDb.length - 1]);
     appendQueryResults(apiSwaggerObject, queryResult);
 
@@ -188,19 +209,19 @@ const updateAPI = async (apiUrlObject, apiUrlHash, retries) => {
 
         // Insert API object in db
         apiSwaggerObject.id = null;
-        const insert = await dbManager.addAPI(apiSwaggerObject);
+        const insert = await dbManager.addAPI(dbClient, apiSwaggerObject);
         console.log(`${insert.insertedId} document(s) was/were inserted.`);
     } else {
         console.log('No changes in API spec');
         apiFromDbObject.fetching_reference = apiSwaggerObject.fetching_reference;
         // Update API object in db
         const filter = { _id: apiFromDbObject.id };
-        const update = await dbManager.updateAPI(filter, apiFromDbObject);
+        const update = await dbManager.updateAPI(dbClient, filter, apiFromDbObject);
         console.log(`${update.matchedCount} document(s) matched the filter criteria.`);
         console.log(`${update.modifiedCount} document(s) were updated.`);
     }
 
-    // wair 250 ms
+    // wait 250 ms
     await new Promise(resolve => setTimeout(resolve, 250));
 
     return true; // return true if the api has been updated
@@ -253,7 +274,20 @@ const handleForbiddenError = async () => {
 // }
 
 module.exports = async ({incomingData}) => {
+    endFlag = false;
     let tmpTime = Date.now();
+    dbClient = await connectUsingMongoose();
+    dbClient.on('error', (err) => {
+        console.log("Something went wrong with mongo: " + err.message)
+    })
+    dbClient.on('disconnected', async () => {
+        if (endFlag) return;
+        console.log("Mongo disconnected")
+        dbClient = await connectUsingMongoose()
+    })
     await consumeApiUrls(incomingData);
+    await flagConsumeElement(dbClient, incomingData);
+    endFlag = true;
+    await closeConnection(dbClient).catch(() => console.log("Error while closing connection"));
     console.log(`[TIME] => ${Date.now() - tmpTime} ms`);
 }

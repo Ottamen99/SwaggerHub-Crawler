@@ -1,6 +1,11 @@
-const { getQueueCursor, getQueueElementsNotConsumed, countElementsInQueueNotConsumed, getWaitingElements} = require("../db/databaseManager");
+const { getQueueCursor, getQueueElementsNotConsumed, countElementsInQueueNotConsumed, getWaitingElements, QueueSchema,
+    QueueModel
+} = require("../db/databaseManager");
 const {ipcConfigServer} = require("../config/config");
-const db = require('../db/mongoConnector.js')();
+const {connectToMongo, connectUsingMongoose} = require("../db/mongoConnector");
+const {DATABASE_NAME} = require("../db/dbConfig");
+const mongoose = require("mongoose");
+// const db = require('../db/mongoConnector.js')();
 const ipc = require('node-ipc').default;
 
 ipc.config.id = ipcConfigServer.id;
@@ -8,8 +13,10 @@ ipc.config.retry = ipcConfigServer.retry;
 ipc.config.maxRetries = ipcConfigServer.maxRetries;
 ipc.config.silent = true
 
-const collection = db.collection('queue');
+let dbClient
+
 let changeStream;
+let startAfter
 
 let queueIsEmpty = true;
 let elementsInQueue = 0;
@@ -19,30 +26,31 @@ let requestSentCounter = 0;
 let messageBroadcast = async (change) => {
     if (change.operationType === 'insert') {
         ipc.server.broadcast('message', change.fullDocument);
+        startAfter = change._id;
     }
 }
 
-let messageBroadcastWithRetry = async (change) => {
-    let retries = 1;
-    while (true) {
-        try {
-            await messageBroadcast(change);
-            // console.log('Broadcasting message succeeded.');
-            return;
-        } catch (err) {
-            console.log(`Broadcasting message failed (retrying in ${ipcConfigServer.retryDelay}ms) attempts ${retries}`);
-            retries++;
-            await new Promise(resolve => setTimeout(resolve, ipcConfigServer.retryDelay));
-        }
-    }
-}
+// let messageBroadcastWithRetry = async (change) => {
+//     let retries = 1;
+//     while (true) {
+//         try {
+//             await messageBroadcast(change);
+//             // console.log('Broadcasting message succeeded.');
+//             return;
+//         } catch (err) {
+//             console.log(`Broadcasting message failed (retrying in ${ipcConfigServer.retryDelay}ms) attempts ${retries}`);
+//             retries++;
+//             await new Promise(resolve => setTimeout(resolve, ipcConfigServer.retryDelay));
+//         }
+//     }
+// }
 
 let send = (socket, channel, data) => {
     return ipc.server.emit(socket, channel, data);
 }
 
 let sendAtStart = async (socket) => {
-    const allData = await getQueueElementsNotConsumed()
+    const allData = await getQueueElementsNotConsumed(dbClient)
     allData.forEach((data) => {
         send(socket, 'message', data)
     })
@@ -67,16 +75,16 @@ let sendAtStartWithRetry = async (socket) => {
 }
 
 
-const options = {
-    batchSize: 1000,
-};
-
 let onServerStart = () => {
-    changeStream = collection.watch(options);
-    changeStream.on('change', messageBroadcastWithRetry)
-    changeStream.on('error', (err) => {
-        console.log("Unable to get change stream: " + err.message)
-    })
+    try {
+        changeStream = dbClient.db.collection('queue').watch();
+        changeStream.on('change', messageBroadcast)
+        changeStream.on('error', (err) => {
+            console.log("Unable to get change stream: " + err.message)
+        })
+    } catch (err) {
+        console.log("Error change stream")
+    }
 }
 
 let onServerStartWithRetry = async () => {
@@ -95,7 +103,7 @@ let onServerStartWithRetry = async () => {
 }
 
 let handleNewConnection = async (socket) => {
-    elementsInQueue = await countElementsInQueueNotConsumed();
+    elementsInQueue = await countElementsInQueueNotConsumed(dbClient);
     console.log("ELEMENTS IN QUEUE AT START: " + elementsInQueue)
     if (elementsInQueue > 0) {
         queueIsEmpty = false;
@@ -132,12 +140,36 @@ ipc.serve(() => {
     })
 })
 
-ipc.server.start();
+
+let main = async () => {
+    dbClient = await connectUsingMongoose()
+    dbClient.on('error', (err) => {
+        console.log("Something went wrong with mongo: " + err.message)
+    })
+    dbClient.on('disconnected', async () => {
+        dbClient = await connectUsingMongoose()
+    })
+    dbClient.on('reconnected', async () => {
+        console.log("Reconnected to mongo, reloading change stream...")
+        changeStream = dbClient.db.collection('queue').watch();
+        changeStream.on('change', messageBroadcast)
+        changeStream.on('error', (err) => {
+            console.log("Unable to get change stream: " + err.message)
+        })
+    })
+
+    ipc.server.start();
+}
+
+main().catch(err => {
+    console.log("ERROR: " + err.message)
+    // process.exit(1);
+})
 
 // perform any cleanup or finalization tasks before stopping the app
 async function cleanup() {
     console.log('Performing cleanup tasks before stopping the app...');
-    ipc.server.stop();
+    // ipc.server.stop();
     process.exit();
 }
 

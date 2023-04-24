@@ -6,7 +6,7 @@ const priorities = {
 
 const workerPoolConfig = {
     minWorkers: 1,
-    maxWorkers: 5,
+    maxWorkers: 1,
 }
 
 const ipcConfigClient = {
