@@ -40,8 +40,8 @@ let main = async () => {
     await generateQuery(dbClient,
         {
             sort_by: sort_by,
-            // order: order,
-            // spec: spec,
+            order: order,
+            spec: spec,
             // owner: ["fehguy"]
         })
     await urlRetriever.retrieveURLs(dbClient).catch(err => () => {
@@ -51,29 +51,7 @@ let main = async () => {
             urlRetriever.retrieveURLs(dbClient)
         }
     })
-    // generationFinished = true;
-
-    // await generateQuery(
-    //     {
-    //         sort_by: sort_by,
-    //         order: order,
-    //         spec: spec,
-    //         // owner: ["fehguy"]
-    //     }
-    // )
-    // await generateQuery(
-    //     {
-    //         // sort_by: sort_by,
-    //         order: order,
-    //         // spec: spec,
-    //         // owner: ["fehguy"]
-    //     }
-    // )
-    //
-    // await urlRetriever.retrieveURLsWithRetry()
 }
-
-const RETRY_DELAY_MS = 5000;
 
 main().then(() => {
     console.log('Finished');
