@@ -9,9 +9,7 @@ const createAPIObject = (api) => {
     apiObject.name = api.name;
     apiObject.description = api.description;
     apiObject.API_url = api.properties[0].url;
-    // apiObject.API_url = "https://api.swaggerhub.com/apis/fehguy/tesla/2.666.1"
     apiObject.API_url_hash = utilityFunction.hashString(api.properties[0].url);
-    // apiObject.API_url_hash = utilityFunction.hashString("https://api.swaggerhub.com/apis/fehguy/tesla/2.666.1");
     apiObject.version = api.properties[1].value;
     apiObject.created_at = api.properties[2].value;
     apiObject.last_modified = api.properties[3].value;
@@ -32,10 +30,18 @@ const addAPI = async (client, apiObject) => {
 }
 
 const updateApis = async (client, apiObjects) => {
-    if (apiObjects.length === 0) {
-        return;
+    // keep only apis that are not in the database
+    const apiObjectsToInsert = [];
+    for (let i = 0; i < apiObjects.length; i++) {
+        const apiExists = await databaseManager.getAPI(client, apiObjects[i].API_url_hash);
+        if (!apiExists) {
+            apiObjectsToInsert.push(apiObjects[i]);
+        }
     }
-    await databaseManager.addAPIs(client, apiObjects);
+    // insert new apis
+    if (apiObjectsToInsert.length > 0) {
+        await databaseManager.addAPIs(client, apiObjectsToInsert);
+    }
 }
 
 module.exports = {

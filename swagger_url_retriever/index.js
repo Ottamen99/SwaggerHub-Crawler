@@ -40,11 +40,17 @@ let main = async () => {
     await generateQuery(dbClient,
         {
             sort_by: sort_by,
-            order: order,
-            spec: spec,
+            // order: order,
+            // spec: spec,
             // owner: ["fehguy"]
         })
-    await urlRetriever.retrieveURLs(dbClient)
+    await urlRetriever.retrieveURLs(dbClient).catch(err => () => {
+        // if is a cursor error, retry
+        if (err.message.includes('cursor')) {
+            console.log('Retrying...')
+            urlRetriever.retrieveURLs(dbClient)
+        }
+    })
     // generationFinished = true;
 
     // await generateQuery(

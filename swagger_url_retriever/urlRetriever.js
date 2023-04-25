@@ -78,20 +78,3 @@ exports.retrieveURLs = async (client) => {
         await databaseManager.updateAPIProxy(client, doc._id)
     }
 }
-
-const RETRY_DELAY_MS = 5000; // 5 seconds
-
-// exports.retrieveURLsWithRetry = async () => {
-//     let retries = 1;
-//     while (true) {
-//         try {
-//             await retrieveURLs();
-//             console.log('Retrieve URLs succeeded.');
-//             return;
-//         } catch (err) {
-//             console.log(`Retrieve URLs failed (retrying in ${RETRY_DELAY_MS}ms) attempts ${retries}`);
-//             retries++;
-//             await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
-//         }
-//     }
-// }
