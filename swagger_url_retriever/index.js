@@ -20,9 +20,9 @@ let handleDisconnect = async () => {
     }else{
         await generateQuery(dbClient,
             {
-                // sort_by: sort_by,
+                sort_by: sort_by,
                 order: order,
-                // spec: spec,
+                spec: spec,
                 // owner: ["fehguy"]
             }
         )
@@ -39,9 +39,9 @@ let main = async () => {
     })
     await generateQuery(dbClient,
         {
-            // sort_by: sort_by,
+            sort_by: sort_by,
             order: order,
-            // spec: spec,
+            spec: spec,
             // owner: ["fehguy"]
         })
     await urlRetriever.retrieveURLs(dbClient)
