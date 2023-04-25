@@ -16,7 +16,7 @@ services:
       - tor_proxy
     network_mode: "host"
     environment:
-      - MONGO_HOST=mongodb://localhost:27017
+      - MONGO_HOST=mongodb://localhost:27017/swagger
       - REFRESH_RATE=20
   scraper:
     container_name: swagger_scraper
@@ -27,7 +27,7 @@ services:
       - scheduler
     network_mode: "host"
     environment:
-      - MONGO_HOST=mongodb://localhost:27017
+      - MONGO_HOST=mongodb://localhost:27017/swagger
       - SOCKET_ADDRESS=http://swagger_ui:3000
       - TOR_PROXY=socks5://localhost:9050
       - MAX_WORKERS=5
