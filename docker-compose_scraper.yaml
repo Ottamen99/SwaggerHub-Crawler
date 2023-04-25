@@ -31,6 +31,16 @@ services:
       - SOCKET_ADDRESS=http://swagger_ui:3000
       - TOR_PROXY=socks5://localhost:9050
       - MAX_WORKERS=5
+  url_retriever:
+    container_name: url_retriever
+    build: ./swagger_url_retriever
+    restart: always
+    depends_on:
+      - tor_proxy
+    network_mode: "host"
+    environment:
+      - MONGO_HOST=mongodb://localhost:27017/swagger
+      - TOR_PROXY=socks5://localhost:9050
   # dashboard:
   #   container_name: swagger_ui
   #   build: ./swagger_ui

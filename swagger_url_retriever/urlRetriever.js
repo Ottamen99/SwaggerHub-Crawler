@@ -34,13 +34,14 @@ let getAPIListUrls = (client, url) => {
     });
 };
 
-const insertUrlIfNotExists = async (client, url) => {
+const insertUrlIfNotExists = async (client, url, proxyUrl) => {
     // check if url is already in database
     let urlInDB = await databaseManager.getUrlIfExists(client, url)
     if (!urlInDB) {
         // add it to database
         const urlObject = new UrlObject()
         urlObject.url = url
+        urlObject.proxyUrl = proxyUrl
         urlObject.fetch_counter = 0
         urlObject.number_of_failure = 0
         urlObject.number_of_success = 0
@@ -64,7 +65,7 @@ exports.retrieveURLs = async (client) => {
         // get count of urls
         let countForAnApiProxy = urls.length
         for (const url of urls) {
-            await insertUrlIfNotExists(client, url)
+            await insertUrlIfNotExists(client, url, doc.query)
             requestCounter++
             // if (requestCounter >= 1172) {
             //     await new Promise(resolve => setTimeout(resolve, 91000));
