@@ -1,8 +1,18 @@
-// exports.sort_by = ['CREATED', "OWNER", "NAME", "UPDATED"]
-exports.sort_by = ['CREATED']
+exports.sort_by = ['CREATED', "OWNER", "NAME", "UPDATED"]
 exports.order = ['ASC', 'DESC']
 exports.limit = 100
 exports.page = [...Array(101).keys()]
-exports.owner = 'fehguy'
-// exports.spec = ['OPENAPI3.0', 'SWAGGER2.0', 'ASYNCAPI2.X']
-exports.specification = ['openapi-2.0']
+exports.specification = ["openapi-2.0",
+    "openapi-3.0.0",
+    "openapi-3.0.1",
+    "openapi-3.0.2",
+    "openapi-3.0.3",
+    "openapi-3.1.0",
+    "asyncapi-2.0.0",
+    "asyncapi-2.1.0",
+    "asyncapi-2.2.0",
+    "asyncapi-2.3.0",
+    "asyncapi-2.4.0",
+    "asyncapi-2.5.0",
+    "asyncapi-2.6.0",
+]

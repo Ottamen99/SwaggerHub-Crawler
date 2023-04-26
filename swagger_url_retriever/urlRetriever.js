@@ -47,9 +47,9 @@ const insertUrlIfNotExists = async (client, url, proxyUrl) => {
     }
 }
 
-exports.retrieveURLs = async (client) => {
+exports.retrieveURLs = async (client, iteration) => {
     let requestCounter = 0
-    const lstApiProxy = await databaseManager.getAllAPIProxy(client)
+    const lstApiProxy = await databaseManager.getAllAPIProxy(client, iteration)
     for (const apiProxy of lstApiProxy) {
         let urls = await getAPIListUrls(client, apiProxy.query);
         // get count of urls
@@ -62,6 +62,6 @@ exports.retrieveURLs = async (client) => {
         let percentage = (alreadyInDbCounter / countForAnApiProxy) * 100
         console.log(`Percentage of already existing URLs: ${percentage}% for ${apiProxy.query}`)
         alreadyInDbCounter = 0
-        await databaseManager.updateAPIProxy(client, apiProxy._id)
+        await databaseManager.updateAPIProxy(client, apiProxy._id, iteration )
     }
 }

@@ -41,24 +41,25 @@ let main = async () => {
     dbClient.on('disconnected', () => {
         handleDisconnect()
     })
-
-    // let docs = await getOwnersNames(dbClient);
-    // const namesArray = docs.map(doc => doc.name);
-
     await generateQuery(dbClient,
         {
             sort: sort_by,
             order: order,
             // specification: specification,
             // owner: ['fehguy']
-    })
-    await urlRetriever.retrieveURLs(dbClient).catch(err => () => {
-        // if is a cursor error, retry
-        if (err.message.includes('cursor')) {
-            console.log('Retrying...')
-            urlRetriever.retrieveURLs(dbClient)
-        }
-    })
+        })
+    let iteration = 0;
+    while (iteration < 10) {
+        await urlRetriever.retrieveURLs(dbClient, iteration).catch(err => () => {
+            // if is a cursor error, retry
+            if (err.message.includes('cursor')) {
+                console.log('Retrying...')
+                urlRetriever.retrieveURLs(dbClient)
+            }
+        })
+        iteration++;
+        console.log('Iteration: ', iteration)
+    }
 }
 
 main().then(() => {
