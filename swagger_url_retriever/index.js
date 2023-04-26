@@ -1,7 +1,8 @@
 const urlRetriever = require("./urlRetriever");
 const {generateQuery} = require("./utils/queryManager");
-const {sort_by, order, spec} = require("./config/queries");
+const {sort_by, order, specification} = require("./config/queries");
 const {connectUsingMongoose, closeConnection} = require("./db/mongoConnector");
+const {getOwnersNames} = require("./db/databaseManager");
 
 let dbClient
 let generationFinished = false;
@@ -18,14 +19,17 @@ let handleDisconnect = async () => {
     if (generationFinished) {
         await urlRetriever.retrieveURLs(dbClient)
     }else{
+
+        let docs = await getOwnersNames(dbClient);
+        const namesArray = docs.map(doc => doc.name);
+
         await generateQuery(dbClient,
             {
-                sort_by: sort_by,
+                sort: sort_by,
                 order: order,
-                spec: spec,
-                // owner: ["fehguy"]
-            }
-        )
+                // specification: specification,
+                // owner: ['fehguy']
+        })
     }
 }
 
@@ -37,13 +41,17 @@ let main = async () => {
     dbClient.on('disconnected', () => {
         handleDisconnect()
     })
+
+    // let docs = await getOwnersNames(dbClient);
+    // const namesArray = docs.map(doc => doc.name);
+
     await generateQuery(dbClient,
         {
-            sort_by: sort_by,
+            sort: sort_by,
             order: order,
-            spec: spec,
-            // owner: ["fehguy"]
-        })
+            // specification: specification,
+            // owner: ['fehguy']
+    })
     await urlRetriever.retrieveURLs(dbClient).catch(err => () => {
         // if is a cursor error, retry
         if (err.message.includes('cursor')) {

@@ -60,7 +60,7 @@ let runSchedule = async () => {
             if (fetchCounter >= MAX_NUMBER_OF_FETCHES) {
                 console.log('Queue is full, waiting...')
                 console.log(sum[0].total, allQueue, fetchCounter)
-                if (sum[0].total % allQueue === 0) {
+                if (sum[0].total % allQueue === 0 && sum[0].total !== 0) {
                     console.log('Waiting...')
                     await new Promise(resolve => setTimeout(resolve, waitingTime))
                     console.log('Refreshing queue...')

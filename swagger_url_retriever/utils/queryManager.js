@@ -4,7 +4,7 @@ const tqdm = require('tqdm');
 const queryConfig = require('../config/queries')
 
 exports.generateQuery = async (client, { ...restParams } = {}) =>{
-    const baseUrl = "https://app.swaggerhub.com/apiproxy/specs?type=API&limit=100&";
+    const baseUrl = "https://app.swaggerhub.com/apiproxy/specs?specType=API&limit=100&";
     const paramArrays = { ...restParams };
     const cartesianProduct = getCartesianProduct(paramArrays);
     const queries = cartesianProduct.flatMap(params => {
@@ -18,8 +18,10 @@ exports.generateQuery = async (client, { ...restParams } = {}) =>{
     for (let i = 0; i < queries.length; i++){
         const query = queries[i];
         let exists = await dbManager.getAPIProxy(client, query)
+        // let exists = await client.db.collection('testProxy').findOne({query: query});
         if (!exists) {
             await dbManager.addAPIProxy(client, {query: query})
+            // await client.db.collection('testProxy').insertOne({query: query});
             pushedQueries++;
         }
     }

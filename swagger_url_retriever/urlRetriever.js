@@ -19,15 +19,6 @@ let getAPIListUrls = (client, url) => {
             }).catch(err => {
                 reject(err);
             })
-            // const apiPromises = res.data.apis.map(api => {
-            //     // return apiManager.addAPI(client, apiManager.createAPIObject(api))
-            //     //     .then(_ => api.properties[0].url);
-            // });
-            // Promise.all(apiPromises).then(apiUrls => {
-            //     resolve(apiUrls);
-            // }).catch(err => {
-            //     reject(err);
-            // });
         }).catch((err) => {
             reject(err);
         });
@@ -58,24 +49,19 @@ const insertUrlIfNotExists = async (client, url, proxyUrl) => {
 
 exports.retrieveURLs = async (client) => {
     let requestCounter = 0
-    const cursor = databaseManager.getAPIProxyCursor(client)
-    while (await cursor.hasNext()) {
-        const doc = await cursor.next()
-        let urls = await getAPIListUrls(client, doc.query);
+    const lstApiProxy = await databaseManager.getAllAPIProxy(client)
+    for (const apiProxy of lstApiProxy) {
+        let urls = await getAPIListUrls(client, apiProxy.query);
         // get count of urls
         let countForAnApiProxy = urls.length
         for (const url of urls) {
-            await insertUrlIfNotExists(client, url, doc.query)
+            await insertUrlIfNotExists(client, url, apiProxy.query)
             requestCounter++
-            // if (requestCounter >= 1172) {
-            //     await new Promise(resolve => setTimeout(resolve, 91000));
-            //     requestCounter = 0
-            // }
         }
         // get percentage of urls already in db
         let percentage = (alreadyInDbCounter / countForAnApiProxy) * 100
-        console.log(`Percentage of already existing URLs: ${percentage}% for ${doc.query}`)
+        console.log(`Percentage of already existing URLs: ${percentage}% for ${apiProxy.query}`)
         alreadyInDbCounter = 0
-        await databaseManager.updateAPIProxy(client, doc._id)
+        await databaseManager.updateAPIProxy(client, apiProxy._id)
     }
 }

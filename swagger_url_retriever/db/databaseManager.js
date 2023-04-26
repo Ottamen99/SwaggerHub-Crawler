@@ -67,8 +67,8 @@ exports.getAPIProxy = async (client, query) => {
     return await client.db.collection('proxyUrls').findOne({query: query})
 }
 
-exports.getAPIProxyCursor = (client) => {
-    return client.db.collection('proxyUrls').find({processed: null});
+exports.getAllAPIProxy = async (client) => {
+    return await client.db.collection('proxyUrls').find({processed: null}).toArray();
 }
 
 exports.addNewOwner = async (client, newOwner) => {
@@ -90,4 +90,8 @@ exports.insertNewQueueElement = async (client, newQueueElement) => {
 exports.updateAPIProxy = async (client, id) => {
     const options = { upsert: false};
     return await client.db.collection('proxyUrls').updateOne({_id: id}, { $set: {processed: true} }, options);
+}
+
+exports.getOwnersNames = async (client) => {
+    return await client.db.collection('owners').find({}, {name: 1, _id: 0}).toArray()
 }
