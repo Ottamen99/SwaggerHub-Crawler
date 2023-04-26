@@ -50,7 +50,7 @@ let main = async () => {
         })
     let iteration = 0;
     while (iteration < 10) {
-        await urlRetriever.retrieveURLs(dbClient, iteration).catch(err => () => {
+        await urlRetriever.retrieveURLs(dbClient).catch(err => () => {
             // if is a cursor error, retry
             if (err.message.includes('cursor')) {
                 console.log('Retrying...')

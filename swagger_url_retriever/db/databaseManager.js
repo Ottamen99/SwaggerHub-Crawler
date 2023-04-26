@@ -67,8 +67,8 @@ exports.getAPIProxy = async (client, query) => {
     return await client.db.collection('proxyUrls').findOne({query: query})
 }
 
-exports.getAllAPIProxy = async (client, iteration) => {
-    return await client.db.collection('proxyUrls').find({processed: iteration === 0 ? null : iteration}).toArray();
+exports.getAllAPIProxy = async (client) => {
+    return await client.db.collection('proxyUrls').find().toArray();
 }
 
 exports.addNewOwner = async (client, newOwner) => {
@@ -87,11 +87,16 @@ exports.insertNewQueueElement = async (client, newQueueElement) => {
     return await client.db.collection('queue').insertOne(newQueueElement);
 }
 
-exports.updateAPIProxy = async (client, id, iteration) => {
+exports.updateAPIProxy = async (client, id) => {
     const options = { upsert: false};
-    return await client.db.collection('proxyUrls').updateOne({_id: id}, { $set: {processed: iteration + 1} }, options);
+    return await client.db.collection('proxyUrls').updateOne({_id: id}, { $inc: { processed: 1 } }, options);
 }
 
 exports.getOwnersNames = async (client) => {
     return await client.db.collection('owners').find({}, {name: 1, _id: 0}).toArray()
+}
+
+exports.setOverlap = async (client, proxyUrlNoPage, overlaps) => {
+    const options = { upsert: true };
+    return await client.db.collection('statsUrl').updateOne({proxyQuery: proxyUrlNoPage}, { $set: {overlaps: overlaps} }, options);
 }
