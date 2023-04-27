@@ -16,14 +16,14 @@ const workerPoolKnownUrlsConfig = {
 }
 
 const ipcConfigClient = {
-    id: 'world',
+    id: 'generation',
     retry: 1500,
     maxRetries: 1000000,
     silent: true,
 }
 
 const ipcConfigServer = {
-    id: 'world',
+    id: 'generation',
     retry: 1500,
     maxRetries: 1000000,
 }

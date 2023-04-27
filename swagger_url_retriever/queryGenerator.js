@@ -2,7 +2,7 @@ const ipc = require('node-ipc').default;
 const {ipcConfigClient, workerPoolConfig} = require("./config/config");
 const {generateQuery, pushQueryInDatabase} = require("./utils/queryManager");
 const {connectUsingMongoose, closeConnection} = require("./db/mongoConnector");
-const {sort_by, order} = require("./config/queries");
+const {sort_by, order, specification, state} = require("./config/queries");
 const tqdm = require("tqdm");
 
 ipc.config.id = ipcConfigClient.id;
@@ -19,7 +19,9 @@ let genQueriesAndPush = async () => {
     } else {
         queries = await generateQuery(dbClient, {
             sort: sort_by,
-            order: order
+            order: order,
+            specification: specification,
+            state: state,
         })
     }
     console.log("Pushing queries...")
@@ -48,7 +50,7 @@ let main = async () => {
             process.exit(0)
         })
     })
-    ipc.connectTo('world', () => {
+    ipc.connectTo('generation', () => {
         ipc.of[ipcConfigClient.id].on('readyMessage', () => {
             genQueriesAndPush().then(async () => {
                 console.log("Queries generated and pushed")
