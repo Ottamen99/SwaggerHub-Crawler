@@ -13,18 +13,27 @@ exports.generateQuery = async (client, { ...restParams } = {}) =>{
         });
     });
     console.log(`Number of queries generated: ${queries.length}`);
-    let pushedQueries = 0;
-    for (let i = 0; i < queries.length; i++){
-        const query = queries[i];
-        let exists = await dbManager.getAPIProxy(client, query)
-        if (!exists) {
-            await dbManager.addAPIProxy(client, {query: query, processed: 0})
-            pushedQueries++;
-        }
-    }
-    console.log(`Number of queries pushed in database: ${pushedQueries}`);
     return queries;
 }
+
+exports.pushQueryInDatabase = async (client, query) => {
+    let exists = await dbManager.getAPIProxy(client, query)
+    if (!exists) {
+        await dbManager.addAPIProxy(client, {query: query, processed: 0})
+        return true;
+    }
+    return false;
+}
+    // let pushedQueries = 0;
+    // for (let i = 0; i < queries.length; i++){
+    //     const query = queries[i];
+    //     let exists = await dbManager.getAPIProxy(client, query)
+    //     if (!exists) {
+    //         await dbManager.addAPIProxy(client, {query: query, processed: 0})
+    //         pushedQueries++;
+    //     }
+    // }
+    // console.log(`Number of queries pushed in database: ${pushedQueries}`);
 
 function getCartesianProduct(paramArrays) {
     const keys = Object.keys(paramArrays);
