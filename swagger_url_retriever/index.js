@@ -1,6 +1,6 @@
 const urlRetriever = require("./urlRetriever");
 const {generateQuery} = require("./utils/queryManager");
-const {sort_by, order, specification} = require("./config/queries");
+const {sort_by, order, specification, state} = require("./config/queries");
 const {connectUsingMongoose, closeConnection} = require("./db/mongoConnector");
 const {getOwnersNames} = require("./db/databaseManager");
 
@@ -25,10 +25,11 @@ let handleDisconnect = async () => {
 
         await generateQuery(dbClient,
             {
-                sort: sort_by,
-                order: order,
+                // sort: sort_by,
+                // order: order,
                 // specification: specification,
-                // owner: ['fehguy']
+                // state: state,
+                owner: namesArray
         })
     }
 }
@@ -41,12 +42,17 @@ let main = async () => {
     dbClient.on('disconnected', () => {
         handleDisconnect()
     })
+
+    let docs = await getOwnersNames(dbClient);
+    const namesArray = docs.map(doc => doc.name);
+
     await generateQuery(dbClient,
         {
-            sort: sort_by,
-            order: order,
+            // sort: sort_by,
+            // order: order,
             // specification: specification,
-            // owner: ['fehguy']
+            // state: state,
+            owner: namesArray
         })
     let iteration = 0;
     while (iteration < 10) {
