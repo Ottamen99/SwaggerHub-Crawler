@@ -88,7 +88,7 @@ const fetchNewAPI = async (apiUrlObject, apiUrlHash, retries) => {
     console.log(`${update.matchedCount} document(s) matched the filter criteria.`);
     console.log(`${update.modifiedCount} document(s) were updated.`);
 
-    // await updateInfoUrl(apiUrlObject.url, queryResult.status);
+    await updateInfoUrl(apiUrlObject.url, queryResult.status);
     await new Promise((resolve) => setTimeout(resolve, 250));
 
     return true; // API added successfully

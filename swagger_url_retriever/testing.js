@@ -1,4 +1,4 @@
-const {getOwnersNames, getAllAPIProxy} = require("./db/databaseManager");
+const {getOwnersNames, getAllAPIProxy, getMaxProcessed} = require("./db/databaseManager");
 const {connectUsingMongoose} = require("./db/mongoConnector");
 
 
@@ -8,7 +8,6 @@ const {connectUsingMongoose} = require("./db/mongoConnector");
     while (client.readyState !== 1) {
         await new Promise(resolve => setTimeout(resolve, 100));
     }
-    docs = await getAllAPIProxy(client);
-    const namesArray = docs.map(doc => doc.query);
-    console.log(namesArray);
+    docs = getMaxProcessed(client);
+    console.log(docs);
 })()

@@ -2,7 +2,7 @@ const {connectUsingMongoose, closeConnection} = require("./db/mongoConnector");
 const {ipcConfigServer, workerPoolNewUrlsConfig, workerPoolKnownUrlsConfig} = require("./config/config");
 const ipc = require('node-ipc').default;
 const Piscina = require('piscina');
-const {getAPIProxyById} = require("./db/databaseManager");
+const {getAPIProxyById, getMaxProcessed, getMinProcessed, getUnprocessed, getProcessed} = require("./db/databaseManager");
 const {ObjectId} = require("mongodb");
 
 
@@ -26,7 +26,7 @@ ipc.config.silent = true
 let dbClient
 let changeStream
 
-let onServerStart = () => {
+let onServerStart = async () => {
     try {
         changeStream = dbClient.db.collection('proxyUrls').watch();
         changeStream.on('change', messageDispatcher)
@@ -35,6 +35,25 @@ let onServerStart = () => {
         })
     } catch (err) {
         console.log("Error change stream")
+    }
+
+    // let maxProcessValue = await getMaxProcessed(dbClient)
+    let minProcessValue = await getMinProcessed(dbClient)
+    let toBeProcessed = []
+    if (minProcessValue === 0) {
+        toBeProcessed = await getUnprocessed(dbClient)
+        toBeProcessed.forEach((url) => {
+            if (url) {
+                poolNewUrls.run({incomingUrl: JSON.stringify(url)});
+            }
+        })
+    } else {
+        toBeProcessed = await getProcessed(dbClient)
+        toBeProcessed.forEach((url) => {
+            if (url) {
+                poolKnownUrls.run({incomingUrl: JSON.stringify(url)});
+            }
+        })
     }
 }
 
@@ -68,11 +87,11 @@ let main = async () => {
     })
     dbClient.on('reconnected', async () => {
         console.log("Reconnected to mongo, reloading change stream...")
-        // changeStream = dbClient.db.collection('queue').watch();
-        // changeStream.on('change', messageBroadcast)
-        // changeStream.on('error', (err) => {
-        //     console.log("Unable to get change stream: " + err.message)
-        // })
+        changeStream = dbClient.db.collection('proxyUrl').watch();
+        changeStream.on('change', messageDispatcher)
+        changeStream.on('error', (err) => {
+            console.log("Unable to get change stream: " + err.message)
+        })
     })
     ipc.server.start();
 }

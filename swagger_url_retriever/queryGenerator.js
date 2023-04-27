@@ -56,12 +56,6 @@ let main = async () => {
                 process.exit(0)
             })
         });
-        // ipc.of[ipcConfigClient.id].on(
-        //     'disconnect',
-        //     () => {
-        //         ipc.log('disconnected from world');
-        //     }
-        // );
     })
 }
 
