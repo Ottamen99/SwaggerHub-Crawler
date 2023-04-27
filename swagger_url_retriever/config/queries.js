@@ -16,3 +16,4 @@ exports.specification = ["openapi-2.0",
     "asyncapi-2.5.0",
     "asyncapi-2.6.0",
 ]
+exports.state = ["PUBLISHED", "UNPUBLISHED"]
