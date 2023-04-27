@@ -1,14 +1,13 @@
-const {buildUrl} = require("./utilityFunctions.js");
 const dbManager = require("../db/databaseManager.js");
-const tqdm = require('tqdm');
 const queryConfig = require('../config/queries')
+const {BASE_SWAGGER_PROXY_URL} = require("../config/constants");
 
 exports.generateQuery = async (client, { ...restParams } = {}) =>{
-    const baseUrl = "https://app.swaggerhub.com/apiproxy/specs?specType=API&limit=3&";
+    const baseUrl = BASE_SWAGGER_PROXY_URL;
     const paramArrays = { ...restParams };
     const cartesianProduct = getCartesianProduct(paramArrays);
     const queries = cartesianProduct.flatMap(params => {
-        return Array.from({ length: 5 }, (_, i) => {
+        return Array.from({ length: 10 }, (_, i) => {
             const queryParams = new URLSearchParams({ ...params, page: i }).toString();
             return `${baseUrl}${queryParams}`;
         });

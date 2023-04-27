@@ -88,7 +88,7 @@ exports.insertNewQueueElement = async (client, newQueueElement) => {
 }
 
 exports.updateAPIProxy = async (client, id) => {
-    const options = { upsert: false};
+    const options = { upsert: false };
     return await client.db.collection('proxyUrls').updateOne({_id: id}, { $inc: { processed: 1 } }, options);
 }
 
