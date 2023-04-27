@@ -39,21 +39,23 @@ let onServerStart = async () => {
 
     // let maxProcessValue = await getMaxProcessed(dbClient)
     let minProcessValue = await getMinProcessed(dbClient)
-    let toBeProcessed = []
-    if (minProcessValue === 0) {
-        toBeProcessed = await getUnprocessed(dbClient)
-        toBeProcessed.forEach((url) => {
-            if (url) {
-                poolNewUrls.run({incomingUrl: JSON.stringify(url)});
-            }
-        })
-    } else {
-        toBeProcessed = await getProcessed(dbClient)
-        toBeProcessed.forEach((url) => {
-            if (url) {
-                poolKnownUrls.run({incomingUrl: JSON.stringify(url)});
-            }
-        })
+    if (minProcessValue !== typeof undefined) {
+        let toBeProcessed = []
+        if (minProcessValue === 0) {
+            toBeProcessed = await getUnprocessed(dbClient)
+            toBeProcessed.forEach((url) => {
+                if (url) {
+                    poolNewUrls.run({incomingUrl: JSON.stringify(url)});
+                }
+            })
+        } else {
+            toBeProcessed = await getProcessed(dbClient)
+            toBeProcessed.forEach((url) => {
+                if (url) {
+                    poolKnownUrls.run({incomingUrl: JSON.stringify(url)});
+                }
+            })
+        }
     }
 }
 

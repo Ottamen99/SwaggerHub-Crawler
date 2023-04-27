@@ -3,6 +3,7 @@ const {ipcConfigClient, workerPoolConfig} = require("./config/config");
 const {generateQuery, pushQueryInDatabase} = require("./utils/queryManager");
 const {connectUsingMongoose, closeConnection} = require("./db/mongoConnector");
 const {sort_by, order} = require("./config/queries");
+const tqdm = require("tqdm");
 
 ipc.config.id = ipcConfigClient.id;
 ipc.config.retry = ipcConfigClient.retry;
@@ -21,7 +22,8 @@ let genQueriesAndPush = async () => {
             order: order
         })
     }
-    for (let query of queries) {
+    console.log("Pushing queries...")
+    for (let query of tqdm(queries)) {
         await pushQueryInDatabase(dbClient, query)
         await new Promise(resolve => setTimeout(resolve, 100));
     }

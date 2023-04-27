@@ -118,7 +118,7 @@ exports.getMinProcessed = async (client) => {
     const result = await client.db.collection('proxyUrls').aggregate([
         { $group: { _id: null, minValue: { $min: "$processed" } } }
     ]).toArray();
-
+    if (result.length === 0) return undefined;
     return result[0].minValue;
 }
 
