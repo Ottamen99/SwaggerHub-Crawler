@@ -1,15 +1,8 @@
 const ipc = require('node-ipc').default;
 const {ipcConfigClient, workerPoolConfig} = require("./config/config");
-const Piscina = require('piscina');
 const {generateQuery, pushQueryInDatabase} = require("./utils/queryManager");
 const {connectUsingMongoose, closeConnection} = require("./db/mongoConnector");
-
-
-const poolNewUrl = new Piscina({
-    filename: __dirname + '/worker.js',
-    minThreads: workerPoolConfig.minWorkers,
-    maxThreads: workerPoolConfig.maxWorkers
-});
+const {sort_by, order} = require("./config/queries");
 
 ipc.config.id = ipcConfigClient.id;
 ipc.config.retry = ipcConfigClient.retry;
@@ -24,7 +17,8 @@ let genQueriesAndPush = async () => {
         console.log("Skipping generation...")
     } else {
         queries = await generateQuery(dbClient, {
-            owner: ["fehguy"],
+            sort: sort_by,
+            order: order
         })
     }
     for (let query of queries) {
@@ -62,12 +56,12 @@ let main = async () => {
                 process.exit(0)
             })
         });
-        ipc.of[ipcConfigClient.id].on(
-            'disconnect',
-            () => {
-                ipc.log('disconnected from world');
-            }
-        );
+        // ipc.of[ipcConfigClient.id].on(
+        //     'disconnect',
+        //     () => {
+        //         ipc.log('disconnected from world');
+        //     }
+        // );
     })
 }
 

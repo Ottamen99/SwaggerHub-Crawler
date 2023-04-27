@@ -78,7 +78,7 @@ const handleDisconnect = async (incomingData) => {
     if (endFlag) return;
     console.log("Mongo disconnected")
     await closeConnection(dbClient).catch(() => console.log("Error while closing connection"));
-    dbClient = await connectUsingMongoose()
+    dbClient = await connectUsingMongoose(5000, true);
     // wait for ready state
     while (dbClient.readyState !== 1) {
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -88,33 +88,30 @@ const handleDisconnect = async (incomingData) => {
 }
 
 const retrieveURLs = async (incomingUrl) => {
-    console.log("SIUMMM: " + incomingUrl)
-    // let requestCounter = 0
-    // const lstApiProxy = await databaseManager.getAllAPIProxy(dbClient)
-    // for (const apiProxy of lstApiProxy) {
-    //     let urls = await getAPIListUrls(apiProxy.query);
-    //     // get count of urls
-    //     let countForAnApiProxy = urls.length
-    //     for (const url of urls) {
-    //         await insertUrlIfNotExists(url, apiProxy.query)
-    //         requestCounter++
-    //     }
-    //     // get percentage of urls already in db
-    //     let percentage = (alreadyInDbCounter / countForAnApiProxy) * 100
-    //     console.log(`Percentage of already existing URLs: ${percentage}% for ${apiProxy.query}`)
-    //     alreadyInDbCounter = 0
-    //     await databaseManager.updateAPIProxy(dbClient, apiProxy._id)
-    //     // update the number of overlaps in the database
-    //     const proxyUrlWithoutPageNumber = apiProxy.query.split('&page=')[0]
-    //     await databaseManager.setOverlap(dbClient, proxyUrlWithoutPageNumber, overlaps)
-    // }
+    let requestCounter = 0
+    let urls = await getAPIListUrls(incomingUrl.query);
+    // get count of urls
+    let countForAnApiProxy = urls.length
+    for (const url of urls) {
+        await insertUrlIfNotExists(url, incomingUrl.query)
+        requestCounter++
+    }
+    // get percentage of urls already in db
+    let percentage = (alreadyInDbCounter / countForAnApiProxy) * 100
+    console.log(`Percentage of already existing URLs: ${percentage}% for ${incomingUrl.query}`)
+    alreadyInDbCounter = 0
+    await databaseManager.updateAPIProxy(dbClient, incomingUrl._id)
+    // update the number of overlaps in the database
+    const proxyUrlWithoutPageNumber = incomingUrl.query.split('&page=')[0]
+    await databaseManager.setOverlap(dbClient, proxyUrlWithoutPageNumber, overlaps)
     endFlag = true;
     await closeConnection(dbClient).catch(() => console.log("Error while closing connection"));
 }
 
 module.exports = async ({incomingUrl}) => {
+    incomingUrl = JSON.parse(incomingUrl)
     endFlag = false
-    dbClient = await connectUsingMongoose();
+    dbClient = await connectUsingMongoose(5000, true);
     dbClient.on('error', (err) => {
         console.log("Something went wrong with mongo: " + err.message)
     })

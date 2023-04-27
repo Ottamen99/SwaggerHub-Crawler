@@ -1,3 +1,4 @@
+const {ObjectId} = require("mongodb");
 exports.addAPIs = (client, apiObjects) => {
     return client.db.collection('apis').insertMany(apiObjects);
 }
@@ -67,6 +68,10 @@ exports.getAPIProxy = async (client, query) => {
     return await client.db.collection('proxyUrls').findOne({query: query})
 }
 
+exports.getAPIProxyById = async (client, id) => {
+    return await client.db.collection('proxyUrls').findOne({_id: id})
+}
+
 exports.getAllAPIProxy = async (client) => {
     return await client.db.collection('proxyUrls').find().toArray();
 }
@@ -89,7 +94,7 @@ exports.insertNewQueueElement = async (client, newQueueElement) => {
 
 exports.updateAPIProxy = async (client, id) => {
     const options = { upsert: false };
-    return await client.db.collection('proxyUrls').updateOne({_id: id}, { $inc: { processed: 1 } }, options);
+    return await client.db.collection('proxyUrls').updateOne({_id: new ObjectId(id)}, { $inc: { processed: 1 } }, options).catch(err => console.log(err));
 }
 
 exports.getOwnersNames = async (client) => {

@@ -5,9 +5,14 @@ const PRIORITIES = {
     LOW: 2
 }
 
-const workerPoolConfig = {
+const workerPoolNewUrlsConfig = {
     minWorkers: 1,
-    maxWorkers: 1,
+    maxWorkers: 5,
+}
+
+const workerPoolKnownUrlsConfig = {
+    minWorkers: 1,
+    maxWorkers: 5,
 }
 
 const ipcConfigClient = {
@@ -24,7 +29,8 @@ const ipcConfigServer = {
 }
 
 module.exports = {
-    workerPoolConfig,
     ipcConfigClient,
     ipcConfigServer,
+    workerPoolNewUrlsConfig,
+    workerPoolKnownUrlsConfig,
 }

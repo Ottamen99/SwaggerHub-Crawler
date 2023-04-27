@@ -7,7 +7,10 @@ services:
     volumes:
       - ~/mongo/data1:/data/db
       - ./rs-init.sh:/scripts/rs-init.sh
-    network_mode: "host"
+    networks:
+      - mongo-network
+    ports:
+      - 27017:27017
     restart: always
     entrypoint: [ "/usr/bin/mongod", "--bind_ip_all", "--replSet", "dbrs" ]
   # tor_proxy:
@@ -57,3 +60,7 @@ services:
   #     - scraper
   #   networks:
   #     - mongo-network
+
+networks:
+  mongo-network:
+    driver: bridge

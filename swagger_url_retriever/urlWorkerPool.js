@@ -1,19 +1,21 @@
 const {connectUsingMongoose, closeConnection} = require("./db/mongoConnector");
-const {ipcConfigServer, workerPoolConfig} = require("./config/config");
+const {ipcConfigServer, workerPoolNewUrlsConfig, workerPoolKnownUrlsConfig} = require("./config/config");
 const ipc = require('node-ipc').default;
 const Piscina = require('piscina');
+const {getAPIProxyById} = require("./db/databaseManager");
+const {ObjectId} = require("mongodb");
 
 
 const poolNewUrls = new Piscina({
     filename: __dirname + '/worker.js',
-    minThreads: workerPoolConfig.minWorkers,
-    maxThreads: workerPoolConfig.maxWorkers
+    minThreads: workerPoolNewUrlsConfig.minWorkers,
+    maxThreads: workerPoolNewUrlsConfig.maxWorkers
 });
 
 const poolKnownUrls = new Piscina({
     filename: __dirname + '/worker.js',
-    minThreads: workerPoolConfig.minWorkers,
-    maxThreads: workerPoolConfig.maxWorkers
+    minThreads: workerPoolKnownUrlsConfig.minWorkers,
+    maxThreads: workerPoolKnownUrlsConfig.maxWorkers
 });
 
 ipc.config.id = ipcConfigServer.id;
@@ -26,7 +28,7 @@ let changeStream
 
 let onServerStart = () => {
     try {
-        changeStream = dbClient.db.collection('queue').watch();
+        changeStream = dbClient.db.collection('proxyUrls').watch();
         changeStream.on('change', messageDispatcher)
         changeStream.on('error', (err) => {
             console.log("Unable to get change stream: " + err.message)
@@ -38,11 +40,11 @@ let onServerStart = () => {
 
 let messageDispatcher = async (change) => {
     if (change.operationType === 'insert') {
-        await poolNewUrls.run({incomingUrl: change});
+        await poolNewUrls.run({incomingUrl: JSON.stringify(change.fullDocument)});
+    } else if (change.operationType === 'update') {
+        let tmp = await getAPIProxyById(dbClient, new ObjectId(change.documentKey._id))
+        await poolKnownUrls.run({ incomingUrl: JSON.stringify(tmp) });
     }
-    // } else if (change.operationType === 'update') {
-    //     await poolKnownUrls.run({ incomingUrl: change });
-    // }
 }
 
 ipc.serve(() => {
@@ -52,15 +54,7 @@ ipc.serve(() => {
     })
     ipc.server.on('connect', (socket) => {
         console.log('client connected');
-        // send message to client
         ipc.server.emit(socket, 'readyMessage', 'server is ready');
-    })
-    // ipc.server.on('newUrl', async (data, socket) => {
-    //     console.log("MESSAGE RECEIVED: " + data)
-    //     await handleNewUrl(data)
-    // })
-    ipc.server.on('socket.disconnected', (socket, destroyedSocketID) => {
-        console.log('client ' + destroyedSocketID + ' has disconnected!');
     })
 })
 

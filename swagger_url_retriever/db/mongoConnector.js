@@ -1,7 +1,7 @@
 const config = require('./dbConfig')
 const mongoose = require('mongoose');
 
-let connectUsingMongoose = async (retryInterval = 5000) => {
+let connectUsingMongoose = async (retryInterval = 5000, silent = false) => {
     let attempt = 1;
     while (true) {
         try {
@@ -12,7 +12,8 @@ let connectUsingMongoose = async (retryInterval = 5000) => {
                 serverSelectionTimeoutMS: 250,
                 directConnection: true,
             }).asPromise()
-            console.log('Connected to MongoDB');
+            if (!silent)
+                console.log('Connected to MongoDB');
             return conn;
         } catch (err) {
             // catching initial connection error
