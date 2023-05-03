@@ -5,6 +5,7 @@ const {UrlObject} = require("./models/UrlObject");
 const {refreshTimer, priorities, fetchLimitSize, waitingTime} = require("./config/config");
 let tr = require('tor-request');
 const {connectUsingMongoose, closeConnection} = require("./db/mongoConnector");
+const tqdm = require('tqdm');
 
 
 tr.setTorAddress('127.0.0.1', 9050);
@@ -21,7 +22,7 @@ const MAX_NUMBER_OF_FETCHES = fetchLimitSize;
 let addElementsToQueue = async (elements, priority) => {
     let newElems = []
     let cnt = 0
-    for (const element of elements) {
+    for (const element of tqdm(elements)) {
         const urlObject = new UrlObject(element)
         let exists = await databaseManager.getQueueElement(dbClient, hashString(urlObject.url)).catch(err => console.log(err))
         if (!exists) {
