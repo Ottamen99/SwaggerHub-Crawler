@@ -4,6 +4,7 @@ const {generateQuery, pushQueryInDatabase} = require("./utils/queryManager");
 const {connectUsingMongoose, closeConnection} = require("./db/mongoConnector");
 const {sort_by, order, specification, state} = require("./config/queries");
 const tqdm = require("tqdm");
+const {getOwnersNames} = require("./db/databaseManager");
 
 ipc.config.id = ipcConfigClient.id;
 ipc.config.retry = ipcConfigClient.retry;
@@ -17,11 +18,16 @@ let genQueriesAndPush = async () => {
     if (queries.length > 0) {
         console.log("Skipping generation...")
     } else {
+
+        let docs = await getOwnersNames(dbClient);
+        const namesArray = docs.map(doc => doc.name);
+
         queries = await generateQuery(dbClient, {
             sort: sort_by,
             order: order,
             specification: specification,
             state: state,
+            // owner: namesArray
         })
     }
     console.log("Pushing queries...")

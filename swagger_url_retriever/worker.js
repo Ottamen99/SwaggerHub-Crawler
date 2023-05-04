@@ -53,18 +53,17 @@ const insertUrlIfNotExists = async (url, proxyUrl) => {
         // get the proxy url without the page number
         const urlObjectProxyUrlWithoutPageNumber = urlObject._proxyUrl.split('&page=')[0]
         const proxyUrlWithoutPageNumber = proxyUrl.split('&page=')[0]
-        // check if proxy  url is aleady in the list of object of overlapping proxy urls
-        let overlap = overlaps.find(overlap => overlap.queryName === urlObjectProxyUrlWithoutPageNumber)
-        if (!overlap) {
-            // if not, create a new object
-            overlap = {
-                queryName: proxyUrlWithoutPageNumber,
-                numberOfOverlaps: 1,
-            }
-            overlaps.push(overlap)
-        } else {
-            // check if overlap
-            if (urlObjectProxyUrlWithoutPageNumber !== proxyUrlWithoutPageNumber) {
+        if (urlObjectProxyUrlWithoutPageNumber !== proxyUrlWithoutPageNumber) {
+            // check if proxy  url is aleady in the list of object of overlapping proxy urls
+            let overlap = overlaps.find(overlap => overlap.queryName === urlObjectProxyUrlWithoutPageNumber)
+            if (!overlap) {
+                // if not, create a new object
+                overlap = {
+                    queryName: urlObjectProxyUrlWithoutPageNumber,
+                    numberOfOverlaps: 1,
+                }
+                overlaps.push(overlap)
+            } else {
                 // else, increment the number of overlaps
                 overlap.numberOfOverlaps++
                 // and update the object in the list
@@ -116,5 +115,5 @@ module.exports = async ({incomingUrl}) => {
         console.log("Something went wrong with mongo: " + err.message)
     })
     dbClient.on('disconnected', () => handleDisconnect(incomingUrl));
-    await retrieveURLs(incomingUrl);
+    await retrieveURLs(incomingUrl).catch(err => console.log(err));
 }

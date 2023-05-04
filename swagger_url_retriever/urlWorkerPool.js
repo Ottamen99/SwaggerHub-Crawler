@@ -49,12 +49,12 @@ let onServerStart = async () => {
                 }
             })
         } else {
-            toBeProcessed = await getProcessed(dbClient)
-            toBeProcessed.forEach((url) => {
-                if (url) {
-                    poolKnownUrls.run({incomingUrl: JSON.stringify(url)});
-                }
-            })
+            // toBeProcessed = await getProcessed(dbClient)
+            // toBeProcessed.forEach((url) => {
+            //     if (url) {
+            //         poolKnownUrls.run({incomingUrl: JSON.stringify(url)});
+            //     }
+            // })
         }
     }
 }
@@ -63,15 +63,17 @@ let messageDispatcher = async (change) => {
     if (change.operationType === 'insert') {
         await poolNewUrls.run({incomingUrl: JSON.stringify(change.fullDocument)});
     } else if (change.operationType === 'update') {
-        let tmp = await getAPIProxyById(dbClient, new ObjectId(change.documentKey._id))
-        await poolKnownUrls.run({ incomingUrl: JSON.stringify(tmp) });
+        // let tmp = await getAPIProxyById(dbClient, new ObjectId(change.documentKey._id))
+        // await poolKnownUrls.run({ incomingUrl: JSON.stringify(tmp) });
     }
 }
 
 ipc.serve(() => {
     ipc.server.on('start', () => {
         console.log("STARTING URL WORKER POOL")
-        onServerStart()
+        onServerStart().catch((err) => {
+            console.log("Error on server start: " + err.message)
+        })
     })
     ipc.server.on('connect', (socket) => {
         console.log('client connected');
