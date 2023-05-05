@@ -1,5 +1,5 @@
 const databaseManager = require('./db/databaseManager');
-const {getAllNewURLs, checkNumberOfFetchedAPIs, countElementsInQueue, countAllInQueue} = require("./db/databaseManager");
+const {getAllNewURLs, checkNumberOfFetchedAPIs, countElementsInQueue, countAllInQueue, countURLs} = require("./db/databaseManager");
 const {hashString} = require("./utils/utilityFunctions");
 const {UrlObject} = require("./models/UrlObject");
 const {refreshTimer, priorities, fetchLimitSize, waitingTime} = require("./config/config");
@@ -18,6 +18,23 @@ let allQueue = 0
 let dbClient;
 
 const MAX_NUMBER_OF_FETCHES = fetchLimitSize;
+
+let updateEvolutions = async () => {
+    try {
+        // get timestamp as year-month-day and hour minute second
+        const timestamp = new Date().toISOString()
+
+        let numUrls = await countURLs(dbClient)
+        await databaseManager.insertUrlEvolution(dbClient, timestamp, numUrls)
+        console.log("Inserted evolution")
+
+        let numConsumedUrls = await databaseManager.countConsumedURLs(dbClient)
+        await databaseManager.insertConsumedUrlEvolution(dbClient, timestamp, numConsumedUrls)
+        console.log("Inserted consumed evolution")
+    } catch (err) {
+        console.log("Error while updating evolutions")
+    }
+}
 
 let addElementsToQueue = async (elements, priority) => {
     let newElems = []
@@ -57,6 +74,7 @@ let runSchedule = async () => {
     console.log("Fetch counter: ", fetchCounter)
     const runScheduler = async () => {
         try {
+            await updateEvolutions()
             let sum = await checkNumberOfFetchedAPIs(dbClient)
             if (fetchCounter >= MAX_NUMBER_OF_FETCHES) {
                 console.log('Queue is full, waiting...')

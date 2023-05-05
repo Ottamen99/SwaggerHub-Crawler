@@ -54,17 +54,17 @@ const insertUrlIfNotExists = async (url, proxyUrl) => {
         const urlObjectProxyUrlWithoutPageNumber = urlObject._proxyUrl.split('&page=')[0]
         const proxyUrlWithoutPageNumber = proxyUrl.split('&page=')[0]
         // check if proxy  url is aleady in the list of object of overlapping proxy urls
-        let overlap = overlaps.find(overlap => overlap.queryName === urlObjectProxyUrlWithoutPageNumber)
-        if (!overlap) {
-            // if not, create a new object
-            overlap = {
-                queryName: proxyUrlWithoutPageNumber,
-                numberOfOverlaps: 1,
-            }
-            overlaps.push(overlap)
-        } else {
-            // check if overlap
-            if (urlObjectProxyUrlWithoutPageNumber !== proxyUrlWithoutPageNumber) {
+        if (urlObjectProxyUrlWithoutPageNumber !== proxyUrlWithoutPageNumber) {
+            // check if proxy  url is aleady in the list of object of overlapping proxy urls
+            let overlap = overlaps.find(overlap => overlap.queryName === urlObjectProxyUrlWithoutPageNumber)
+            if (!overlap) {
+                // if not, create a new object
+                overlap = {
+                    queryName: urlObjectProxyUrlWithoutPageNumber,
+                    numberOfOverlaps: 1,
+                }
+                overlaps.push(overlap)
+            } else {
                 // else, increment the number of overlaps
                 overlap.numberOfOverlaps++
                 // and update the object in the list
@@ -103,7 +103,9 @@ const retrieveURLs = async (incomingUrl) => {
     await databaseManager.updateAPIProxy(dbClient, incomingUrl._id)
     // update the number of overlaps in the database
     const proxyUrlWithoutPageNumber = incomingUrl.query.split('&page=')[0]
-    await databaseManager.setOverlap(dbClient, proxyUrlWithoutPageNumber, overlaps)
+    if (overlaps.length !== 0) {
+        await databaseManager.setOverlap(dbClient, proxyUrlWithoutPageNumber, overlaps)
+    }
     endFlag = true;
     await closeConnection(dbClient).catch(() => console.log("Error while closing connection"));
 }

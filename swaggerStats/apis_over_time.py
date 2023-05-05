@@ -23,7 +23,5 @@ for change in change_stream:
     # get the number of URLs at the timestamp
     num_urls = url_collection.count_documents({})
 
-    # check if the number of URLs is equal to the number of consumed elements in the queue collection
-    num_consumed = queue_collection.count_documents({"consumed": True})
     # insert a new document in the evolution collection
     evolution_collection.insert_one({"timestamp": timestamp, "num_urls": num_urls})

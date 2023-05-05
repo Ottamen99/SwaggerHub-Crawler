@@ -102,7 +102,9 @@ const retrieveURLs = async (incomingUrl) => {
     await databaseManager.updateAPIProxy(dbClient, incomingUrl._id)
     // update the number of overlaps in the database
     const proxyUrlWithoutPageNumber = incomingUrl.query.split('&page=')[0]
-    await databaseManager.setOverlap(dbClient, proxyUrlWithoutPageNumber, overlaps)
+    if (overlaps.length !== 0) {
+        await databaseManager.setOverlap(dbClient, proxyUrlWithoutPageNumber, overlaps)
+    }
     endFlag = true;
     await closeConnection(dbClient).catch(() => console.log("Error while closing connection"));
 }
