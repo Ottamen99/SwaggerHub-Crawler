@@ -25,8 +25,8 @@ let genQueriesAndPush = async () => {
         queries = await generateQuery(dbClient, {
             sort: sort_by,
             order: order,
-            specification: specification,
-            state: state,
+            // specification: specification,
+            // state: state,
             // owner: namesArray
         })
     }

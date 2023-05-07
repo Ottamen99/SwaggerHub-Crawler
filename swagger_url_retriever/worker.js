@@ -111,6 +111,7 @@ const retrieveURLs = async (incomingUrl) => {
 
 module.exports = async ({incomingUrl}) => {
     incomingUrl = JSON.parse(incomingUrl)
+    // overlaps = []
     endFlag = false
     dbClient = await connectUsingMongoose(5000, true);
     dbClient.on('error', (err) => {
