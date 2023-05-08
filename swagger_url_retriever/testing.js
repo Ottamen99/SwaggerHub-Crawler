@@ -15,7 +15,7 @@ const tqdm = require("tqdm");
                 for (let queueDoc of queueDocuments) {
                     if (queueDoc.urlObject === JSON.stringify(doc)) {
                         console.log(doc);
-                        console.log(queueDoc);
+                        // console.log(queueDoc);
                         console.log();
                         break;
                     }

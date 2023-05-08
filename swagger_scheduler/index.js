@@ -6,6 +6,7 @@ const {refreshTimer, priorities, fetchLimitSize, waitingTime} = require("./confi
 let tr = require('tor-request');
 const {connectUsingMongoose, closeConnection} = require("./db/mongoConnector");
 const tqdm = require('tqdm');
+const {ObjectId} = require("mongodb");
 
 
 tr.setTorAddress('127.0.0.1', 9050);
@@ -16,8 +17,42 @@ tr.TorControlPort.password = 'password';
 let fetchCounter = 0;
 let allQueue = 0
 let dbClient;
+let sum;
+
+let reSyncDone = false;
 
 const MAX_NUMBER_OF_FETCHES = fetchLimitSize;
+
+let reSync = async (client, numberOutOfSync) => {
+    let foundValues = 0
+    const db = client.db;
+    const collection1 = db.collection('urls');
+    const collection2 = db.collection('queue');
+    let needResyncIds = [];
+
+    collection1.find({_fetch_counter: 0}).toArray().then((documents) => {
+        collection2.find().toArray().then((queueDocuments) => {
+            for (let doc of tqdm(documents)) {
+                for (let queueDoc of queueDocuments) {
+                    if (queueDoc.urlObject === JSON.stringify(doc)) {
+                        foundValues++;
+                        needResyncIds.push(queueDoc._id.toString());
+                        break;
+                    }
+                }
+                if (foundValues === numberOutOfSync) {
+                    break;
+                }
+            }
+            let a = needResyncIds.map((id) => { return new ObjectId(id) })
+            // delete from queue the elements with needResyncIds
+            collection2.deleteMany({_id: {$in: a}}).then((res) => {
+                console.log(res)
+                reSyncDone = true;
+            })
+        })
+    })
+}
 
 let updateEvolutions = async () => {
     try {
@@ -72,10 +107,36 @@ let runSchedule = async () => {
     allQueue = await countAllInQueue(dbClient)
     console.log("All queue: ", allQueue)
     console.log("Fetch counter: ", fetchCounter)
+    sum = await checkNumberOfFetchedAPIs(dbClient)
+    let tmpSum = sum[0].total
+    console.log("Sum: ", sum[0].total)
+
+    if (sum[0].total % allQueue !== 0 && sum[0].total !== 0 && sum[0].total < allQueue) {
+        for (let i = 0; i < 5; i++) {
+            await new Promise(resolve => setTimeout(resolve, 1000))
+            sum = await checkNumberOfFetchedAPIs(dbClient)
+            console.log("Sum: ", sum[0].total)
+            if (tmpSum !== sum[0].total) {
+                break
+            } else {
+                console.log("Scheduler is stuck...(iteration: ", i + 1, " over 5)");
+            }
+        }
+        let outOfSyncValue = allQueue - sum[0].total
+        console.log("Out of sync value: ", outOfSyncValue)
+        await reSync(dbClient, outOfSyncValue)
+    } else {
+        reSyncDone = true
+    }
+
+    while (!reSyncDone) {
+        await new Promise(resolve => setTimeout(resolve, 1000))
+    }
+
     const runScheduler = async () => {
         try {
             await updateEvolutions()
-            let sum = await checkNumberOfFetchedAPIs(dbClient)
+            sum = await checkNumberOfFetchedAPIs(dbClient)
             if (fetchCounter >= MAX_NUMBER_OF_FETCHES) {
                 console.log('Queue is full, waiting...')
                 console.log(sum[0].total, allQueue, fetchCounter)

@@ -67,7 +67,7 @@ plt.legend()
 plt.xlim(-10, 10)
 
 # save the plot as a png file
-plt.savefig('gaussian_api_count_no_owners_.png', dpi=500, bbox_inches='tight')
+# plt.savefig('gaussian_api_count_no_owners_.png', dpi=500, bbox_inches='tight')
 
 plt.show()
 
@@ -83,5 +83,5 @@ plt.title('API Count per Owner')
 plt.tight_layout()
 
 # save the plot as a png file
-plt.savefig('api_count_per_owner.png', dpi=500, bbox_inches='tight')
+# plt.savefig('api_count_per_owner.png', dpi=500, bbox_inches='tight')
 # plt.show()
