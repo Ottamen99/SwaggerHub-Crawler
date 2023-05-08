@@ -2,6 +2,7 @@ const {getOwnersNames, getAllAPIProxy, getMaxProcessed, setOverlap} = require(".
 const {connectUsingMongoose} = require("./db/mongoConnector");
 const tqdm = require("tqdm");
 
+let count = 0;
 
 (async () => {
     let client = await connectUsingMongoose();
@@ -14,13 +15,19 @@ const tqdm = require("tqdm");
             for (let doc of tqdm(documents)) {
                 let isInQueue = false;
                 for (let queueDoc of queueDocuments) {
-                    if (queueDoc.urlObject === JSON.stringify(doc)) {
+                    let tmpDoc = doc;
+                    tmpDoc._fetch_counter = 0;
+                    tmpDoc._number_of_failure = 0;
+                    tmpDoc._number_of_success = 0;
+                    if (queueDoc.urlObject === JSON.stringify(tmpDoc)) {
                         isInQueue = true;
                         break;
                     }
                 }
                 if (!isInQueue) {
+                    count++;
                     console.log(doc);
+                    console.log();
                 }
             }
         })
