@@ -23,11 +23,11 @@ let genQueriesAndPush = async () => {
         const namesArray = docs.map(doc => doc.name);
 
         queries = await generateQuery(dbClient, {
-            sort: sort_by,
-            order: order,
+            // sort: sort_by,
+            // order: order,
             // specification: specification,
             // state: state,
-            // owner: namesArray
+            owner: namesArray
         })
     }
     console.log("Pushing queries...")

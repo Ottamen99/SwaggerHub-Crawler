@@ -23,7 +23,4 @@ const tqdm = require("tqdm");
             }
         })
     })
-
-    // // Close the MongoDB connection
-    // client.close();
 })()

@@ -1,7 +1,7 @@
-exports.sort_by = ['UPDATED']
-exports.order = ['ASC']
+exports.sort_by = ['CREATED', "UPDATED", "NAME", "OWNER"]
+exports.order = ['ASC', "DESC"]
 exports.limit = 100
-exports.page = [...Array(101).keys()]
+exports.pages = 5
 exports.specification = ["openapi-2.0",
     "openapi-3.0.0",
     "openapi-3.0.1",

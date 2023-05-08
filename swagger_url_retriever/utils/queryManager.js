@@ -1,13 +1,14 @@
 const dbManager = require("../db/databaseManager.js");
 const queryConfig = require('../config/queries')
 const {BASE_SWAGGER_PROXY_URL} = require("../config/constants");
+const {pages} = require("../config/queries");
 
 exports.generateQuery = async (client, { ...restParams } = {}) =>{
     const baseUrl = BASE_SWAGGER_PROXY_URL;
     const paramArrays = { ...restParams };
     const cartesianProduct = getCartesianProduct(paramArrays);
     const queries = cartesianProduct.flatMap(params => {
-        return Array.from({ length: 100 }, (_, i) => {
+        return Array.from({ length: pages }, (_, i) => {
             const queryParams = new URLSearchParams({ ...params, page: i }).toString();
             return `${baseUrl}${queryParams}`;
         });

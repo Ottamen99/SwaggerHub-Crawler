@@ -6,9 +6,23 @@ const tqdm = require("tqdm");
 (async () => {
     let client = await connectUsingMongoose();
     const db = client.db;
-    const coll = db.collection('statsUrl');
-    let overlaps = []
-    overlaps.push({queryName: "https://app.swaggerhub.com/apiproxy/specs?specType=API&limit=100&sort=CREATED&order=ASC&specification=openapi-3.0.0&state=PUBLISHED",
-    numberOfOverlaps: 1000})
-    await setOverlap(client, "https://app.swaggerhub.com/apiproxy/specs?specType=API&limit=100&sort=CREATED&order=ASC&specification=openapi-3.0.1&state=PUBLISHED", overlaps)
+    const collection1 = db.collection('urls');
+    const collection2 = db.collection('queue');
+
+    collection1.find({_fetch_counter: 1}).toArray().then((documents) => {
+        collection2.find().toArray().then((queueDocuments) => {
+            for (let doc of tqdm(documents)) {
+                let isInQueue = false;
+                for (let queueDoc of queueDocuments) {
+                    if (queueDoc.urlObject === JSON.stringify(doc)) {
+                        isInQueue = true;
+                        break;
+                    }
+                }
+                if (!isInQueue) {
+                    console.log(doc);
+                }
+            }
+        })
+    })
 })()

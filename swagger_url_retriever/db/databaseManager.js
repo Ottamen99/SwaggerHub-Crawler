@@ -106,6 +106,14 @@ exports.setOverlap = async (client, proxyUrlNoPage, overlaps) => {
     return await client.db.collection('statsUrl').updateOne({proxyQuery: proxyUrlNoPage}, { $set: {overlaps: overlaps} }, options);
 }
 
+exports.setOverlapTest = async (client, proxyUrlNoPage, overlappingQuery) => {
+    const options = { upsert: true };
+    return await client.db.collection('statsUrl').updateOne({ $and: [
+            { proxyQuery: proxyUrlNoPage },
+            { overlappingQuery: overlappingQuery }
+        ]}, { $inc: {overlaps: 1} }, options);
+}
+
 exports.getMaxProcessed = async (client) => {
     const result = await client.db.collection('proxyUrls').aggregate([
         { $group: { _id: null, maxValue: { $max: "$processed" } } }

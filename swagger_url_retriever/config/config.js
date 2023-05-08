@@ -7,7 +7,7 @@ const PRIORITIES = {
 
 const workerPoolNewUrlsConfig = {
     minWorkers: 1,
-    maxWorkers: 1,
+    maxWorkers: 5,
 }
 
 const workerPoolKnownUrlsConfig = {

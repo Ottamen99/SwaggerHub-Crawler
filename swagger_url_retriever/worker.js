@@ -5,6 +5,7 @@ const {UrlObject} = require("./models/UrlObject");
 const {parseOwner, hashString} = require("./utils/utilityFunctions");
 const {updateApis} = require("./utils/apiManager");
 const {connectUsingMongoose, closeConnection} = require("./db/mongoConnector");
+const {setOverlapTest} = require("./db/databaseManager");
 
 let dbClient
 let alreadyInDbCounter = 0;
@@ -54,21 +55,7 @@ const insertUrlIfNotExists = async (url, proxyUrl) => {
         const urlObjectProxyUrlWithoutPageNumber = urlObject._proxyUrl.split('&page=')[0]
         const proxyUrlWithoutPageNumber = proxyUrl.split('&page=')[0]
         if (urlObjectProxyUrlWithoutPageNumber !== proxyUrlWithoutPageNumber) {
-            // check if proxy  url is aleady in the list of object of overlapping proxy urls
-            let overlap = overlaps.find(overlap => overlap.queryName === urlObjectProxyUrlWithoutPageNumber)
-            if (!overlap) {
-                // if not, create a new object
-                overlap = {
-                    queryName: urlObjectProxyUrlWithoutPageNumber,
-                    numberOfOverlaps: 1,
-                }
-                overlaps.push(overlap)
-            } else {
-                // else, increment the number of overlaps
-                overlap.numberOfOverlaps++
-                // and update the object in the list
-                overlaps[overlaps.indexOf(overlap)] = overlap
-            }
+            await setOverlapTest(dbClient, urlObjectProxyUrlWithoutPageNumber, proxyUrlWithoutPageNumber)
         }
     }
 }
@@ -100,11 +87,6 @@ const retrieveURLs = async (incomingUrl) => {
     console.log(`Percentage of already existing URLs: ${percentage}% for ${incomingUrl.query}`)
     alreadyInDbCounter = 0
     await databaseManager.updateAPIProxy(dbClient, incomingUrl._id)
-    // update the number of overlaps in the database
-    const proxyUrlWithoutPageNumber = incomingUrl.query.split('&page=')[0]
-    if (overlaps.length !== 0) {
-        await databaseManager.setOverlap(dbClient, proxyUrlWithoutPageNumber, overlaps)
-    }
     endFlag = true;
     await closeConnection(dbClient).catch(() => console.log("Error while closing connection"));
 }
