@@ -113,10 +113,11 @@ let runSchedule = async () => {
 
     if (sum[0].total % allQueue !== 0 && sum[0].total !== 0 && sum[0].total < allQueue) {
         for (let i = 0; i < 5; i++) {
-            await new Promise(resolve => setTimeout(resolve, 1000))
+            await new Promise(resolve => setTimeout(resolve, 5000))
             sum = await checkNumberOfFetchedAPIs(dbClient)
             console.log("Sum: ", sum[0].total)
             if (tmpSum !== sum[0].total) {
+                reSyncDone = true
                 break
             } else {
                 console.log("Scheduler is stuck...(iteration: ", i + 1, " over 5)");
