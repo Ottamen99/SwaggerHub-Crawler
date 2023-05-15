@@ -13,7 +13,7 @@ const poolNewUrls = new Piscina({
 });
 
 const poolKnownUrls = new Piscina({
-    filename: __dirname + '/workerKnown.js',
+    filename: __dirname + '/worker.js',
     minThreads: workerPoolKnownUrlsConfig.minWorkers,
     maxThreads: workerPoolKnownUrlsConfig.maxWorkers
 });

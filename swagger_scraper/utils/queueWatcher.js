@@ -1,11 +1,6 @@
-const { getQueueCursor, getQueueElementsNotConsumed, countElementsInQueueNotConsumed, getWaitingElements, QueueSchema,
-    QueueModel
-} = require("../db/databaseManager");
+const { getQueueElementsNotConsumed, countElementsInQueueNotConsumed } = require("../db/databaseManager");
 const {ipcConfigServer} = require("../config/config");
-const {connectToMongo, connectUsingMongoose} = require("../db/mongoConnector");
-const {DATABASE_NAME} = require("../db/dbConfig");
-const mongoose = require("mongoose");
-// const db = require('../db/mongoConnector.js')();
+const {connectUsingMongoose} = require("../db/mongoConnector");
 const ipc = require('node-ipc').default;
 
 ipc.config.id = ipcConfigServer.id;
@@ -20,8 +15,6 @@ let startAfter
 
 let queueIsEmpty = true;
 let elementsInQueue = 0;
-
-let requestSentCounter = 0;
 
 let messageBroadcast = async (change) => {
     if (change.operationType === 'insert') {
@@ -121,7 +114,7 @@ ipc.serve(() => {
     ipc.server.on('start', onServerStartWithRetry)
     ipc.server.on('connect', handleNewConnectionWithRetry)
     ipc.server.on('socket.disconnected', (socket, destroyedSocketID) => {
-        ipc.log('client ' + destroyedSocketID + ' has disconnected!');
+        console.log('client ' + destroyedSocketID + ' has disconnected!');
     })
 })
 
@@ -154,7 +147,7 @@ main().catch(err => {
 // perform any cleanup or finalization tasks before stopping the app
 async function cleanup() {
     console.log('Performing cleanup tasks before stopping the app...');
-    // ipc.server.stop();
+    ipc.server.stop();
     process.exit();
 }
 

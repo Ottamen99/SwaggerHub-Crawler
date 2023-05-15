@@ -18,9 +18,6 @@ let dbClient
 let endFlag = false
 
 async function consumeApiUrls(incomingData) {
-        // get corresponding api from db
-        // const result = JSON.parse(message.value.toString())
-
         switch (incomingData.priority) {
             case config.priorities.HIGH:
                 try {
@@ -157,13 +154,6 @@ async function getApiFromSwagger(apiUrlHash, retries) {
                 status: res.status
             }
         })
-        // const queryResult = await axios.get(apiObject.API_url).then((res) => {
-        //     return {
-        //         data: res.data,
-        //         headers: res.headers,
-        //         status: res.status
-        //     }
-        // })
         return {apiObject, queryResult};
     } catch (err) {
         const urlObject = new UrlObject(await dbManager.getURL(dbClient, apiObject.API_url));

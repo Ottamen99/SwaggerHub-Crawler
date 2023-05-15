@@ -54,6 +54,7 @@ const insertUrlIfNotExists = async (url, proxyUrl) => {
         // get the proxy url without the page number
         const urlObjectProxyUrlWithoutPageNumber = urlObject._proxyUrl.split('&page=')[0]
         const proxyUrlWithoutPageNumber = proxyUrl.split('&page=')[0]
+        // check if proxy  url is aleady in the list of object of overlapping proxy urls
         if (urlObjectProxyUrlWithoutPageNumber !== proxyUrlWithoutPageNumber) {
             await setOverlapTest(dbClient, urlObjectProxyUrlWithoutPageNumber, proxyUrlWithoutPageNumber)
         }
@@ -93,7 +94,6 @@ const retrieveURLs = async (incomingUrl) => {
 
 module.exports = async ({incomingUrl}) => {
     incomingUrl = JSON.parse(incomingUrl)
-    // overlaps = []
     endFlag = false
     dbClient = await connectUsingMongoose(5000, true);
     dbClient.on('error', (err) => {
