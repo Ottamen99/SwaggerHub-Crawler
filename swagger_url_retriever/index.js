@@ -1,8 +1,9 @@
 const urlRetriever = require("./urlRetriever");
-const {generateQuery} = require("./utils/queryManager");
+const {generateQuery, pushQueryInDatabase} = require("./utils/queryManager");
 const {sort_by, order, specification, state} = require("./config/queries");
 const {connectUsingMongoose, closeConnection} = require("./db/mongoConnector");
 const {getOwnersNames} = require("./db/databaseManager");
+const tqdm = require("tqdm");
 
 let dbClient
 let generationFinished = false;
@@ -25,11 +26,11 @@ let handleDisconnect = async () => {
 
         await generateQuery(dbClient,
             {
-                // sort: sort_by,
-                // order: order,
+                sort: sort_by,
+                order: order,
                 // specification: specification,
                 // state: state,
-                owner: namesArray
+                // owner: namesArray
         })
     }
 }
@@ -46,18 +47,22 @@ let main = async () => {
     let docs = await getOwnersNames(dbClient);
     const namesArray = docs.map(doc => doc.name);
 
-    await generateQuery(dbClient,
+    let queries = await generateQuery(dbClient,
         {
-            // sort: sort_by,
-            // order: order,
+            sort: sort_by,
+            order: order,
             // specification: specification,
             // state: state,
-            owner: namesArray
+            // owner: namesArray
         })
+    console.log("Pushing queries...")
+    for (let query of tqdm(queries)) {
+        await pushQueryInDatabase(dbClient, query)
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
     let iteration = 0;
-    while (iteration < 10) {
-        await urlRetriever.retrieveURLs(dbClient).catch(err => () => {
-            // if is a cursor error, retry
+    while (iteration < 1) {
+        await urlRetriever.retrieveURLs(dbClient).catch(err => () => {l            // if is a cursor error, retry
             if (err.message.includes('cursor')) {
                 console.log('Retrying...')
                 urlRetriever.retrieveURLs(dbClient)
