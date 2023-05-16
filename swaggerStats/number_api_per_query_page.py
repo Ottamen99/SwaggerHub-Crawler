@@ -28,7 +28,14 @@ counts = [result["count"] for result in results]
 plt.hist(counts, bins=50)
 plt.xlabel("Number of API Results")
 plt.ylabel("Number of Queries")
-plt.title("Distribution of API Results per Query")
+plt.title("Distribution of API Results per Query (without grouping pages)")
+
+# Add the maximum value for each bin as text
+# bin_counts, bin_edges, _ = plt.hist(counts, bins=50)
+# for i in range(len(bin_counts)):
+#     if bin_counts[i] != 0:
+#         plt.text(bin_edges[i], bin_counts[i], int(bin_counts[i]), ha='center', va='bottom')
+
 
 plt.savefig('number_api_per_query_pages.png', dpi=500, bbox_inches='tight')
 plt.show()

@@ -2,7 +2,7 @@ const ipc = require('node-ipc').default;
 const {ipcConfigClient, workerPoolConfig} = require("./config/config");
 const {generateQuery, pushQueryInDatabase} = require("./utils/queryManager");
 const {connectUsingMongoose, closeConnection} = require("./db/mongoConnector");
-const {sort_by, order, specification, state} = require("./config/queries");
+const {sort_by, order, specification, state, query} = require("./config/queries");
 const tqdm = require("tqdm");
 const {getOwnersNames} = require("./db/databaseManager");
 
@@ -25,6 +25,7 @@ let genQueriesAndPush = async () => {
         queries = await generateQuery(dbClient, {
             sort: sort_by,
             order: order,
+            query: query,
             // specification: specification,
             // state: state,
             // owner: namesArray

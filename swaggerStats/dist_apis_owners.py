@@ -67,7 +67,7 @@ plt.legend()
 plt.xlim(-10, 10)
 
 # save the plot as a png file
-# plt.savefig('gaussian_api_count_no_owners_.png', dpi=500, bbox_inches='tight')
+plt.savefig('gaussian_api_count_owners.png', dpi=500, bbox_inches='tight')
 
 plt.show()
 
@@ -76,12 +76,12 @@ plt.figure(figsize=(25, 8))
 df.plot(kind='line', legend=None)
 plt.xticks(rotation=90)
 plt.xlabel('Owner')
-plt.ylabel('API Count (log10 scale)')
+plt.ylabel('API Count')
 plt.title('API Count per Owner')
 
 # make the plot fit the window
 plt.tight_layout()
 
 # save the plot as a png file
-# plt.savefig('api_count_per_owner.png', dpi=500, bbox_inches='tight')
-# plt.show()
+plt.savefig('api_count_per_owner.png', dpi=500, bbox_inches='tight')
+plt.show()

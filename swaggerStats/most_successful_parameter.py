@@ -43,6 +43,28 @@ for d in data:
     rows.append({"Query": proxyQuery, "Overlap Query": overlapping_query, "Overlap Count": d["overlaps"] / normalization_factor})
 df = pd.DataFrame(rows)
 
+# plot gaussian distribution of the overlap count
+# calculate 3 sigma rule
+mean = df["Overlap Count"].mean()
+std = df["Overlap Count"].std()
+print(mean)
+print(std)
+print(mean - 3 * std)
+print(mean + 3 * std)
+
+df["Overlap Count"].plot.kde()
+plt.axvline(mean, color='k', linestyle='dashed', linewidth=1)
+plt.axvline(mean - 3 * std, color='r', linestyle='dashed', linewidth=1)
+plt.axvline(mean + 3 * std, color='g', linestyle='dashed', linewidth=1)
+plt.xlabel("Overlap Count")
+plt.ylabel("Density")
+plt.title("Density Plot of Overlap Count")
+plt.xlim(-5, 30)
+plt.show()
+
+# remove overlap count less than +3 sigma
+df = df[df["Overlap Count"] > mean + 3 * std]
+
 # Create a pivot table and plot the heatmap
 pivot_table = df.pivot_table(index="Overlap Query", columns="Query", values="Overlap Count", aggfunc=np.sum, fill_value=0)
 # # Sort the pivot table based on the maximum values in each row
