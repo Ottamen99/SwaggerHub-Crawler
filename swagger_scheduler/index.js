@@ -6,12 +6,6 @@ const {refreshTimer, priorities, fetchLimitSize, waitingTime} = require("./confi
 let tr = require('tor-request');
 const {connectUsingMongoose, closeConnection} = require("./db/mongoConnector");
 
-
-tr.setTorAddress('127.0.0.1', 9050);
-tr.TorControlPort.host = '127.0.0.1';
-tr.TorControlPort.port = 9051;
-tr.TorControlPort.password = 'password';
-
 let fetchCounter = 0;
 let allQueue = 0
 let dbClient;
@@ -106,32 +100,4 @@ let main = async () => {
 }
 
 main()
-    // Refresh the Tor session every 30 seconds
-    // console.log(tr.TorControlPort)
-    // setInterval(() => {
-    //     tr.newTorSession(function (err, done) {
-    //         if (err) throw err;
-    //     });
-    // }, 30000);
-
-    // setInterval(() => {
-    //     tr.request({
-    //         url: 'https://api.ipify.org/',
-    //         // torControlPort: torControlPort,
-    //         // torControlPassword: torControlPassword,
-    //         method: 'GET',
-    //         headers: {
-    //             'Content-Type': 'application/json',
-    //         },
-    //         // body: JSON.stringify({
-    //         //     'signal': 'NEWNYM',
-    //         // }),
-    //     },(error, response, body) => {
-    //         if (!error && response.statusCode === 200) {
-    //             console.log('Your public IP address is:', body);
-    //         } else {
-    //             console.error('Error getting IP address:', error);
-    //         }
-    //     });
-    // }, 5000);
 
