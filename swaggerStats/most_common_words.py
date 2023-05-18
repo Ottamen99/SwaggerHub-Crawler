@@ -1,3 +1,4 @@
+import nltk
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -35,6 +36,7 @@ name_array = [word for word in name_array if len(word) > 2]
 
 # remove stopwords
 from nltk.corpus import stopwords
+nltk.download('stopwords')
 
 stop_words = stopwords.words('english')
 
@@ -68,17 +70,23 @@ df.set_index('Word', inplace=True)
 
 # Plot the dataframe
 df.plot.bar()
+plt.xlabel("Word")
+plt.ylabel("Frequency")
+plt.title("Most Common Words in API Names")
+# put some space between the labels of x-axis
+plt.gcf().subplots_adjust(bottom=0.25)
+plt.tight_layout()
 
-# save most_common words to file without frequency
-most_common = [word[0] for word in most_common]
-with open('most_common_words.txt', 'w') as f:
-    for item in most_common:
-        f.write("%s\n" % item)
-
-# dump most_common words to json file without frequency
-import json
-with open('most_common_words.json', 'w') as f:
-    json.dump(most_common, f)
+# # save most_common words to file without frequency
+# most_common = [word[0] for word in most_common]
+# with open('most_common_words.txt', 'w') as f:
+#     for item in most_common:
+#         f.write("%s\n" % item)
+#
+# # dump most_common words to json file without frequency
+# import json
+# with open('most_common_words.json', 'w') as f:
+#     json.dump(most_common, f)
 
 
 plt.show()

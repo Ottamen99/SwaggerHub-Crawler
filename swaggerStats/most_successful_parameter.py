@@ -54,13 +54,17 @@ print(mean + 3 * std)
 
 df["Overlap Count"].plot.kde()
 plt.axvline(mean, color='k', linestyle='dashed', linewidth=1)
-plt.axvline(mean - 3 * std, color='r', linestyle='dashed', linewidth=1)
+plt.axvline(mean - 3 * std, color='g', linestyle='dashed', linewidth=1)
 plt.axvline(mean + 3 * std, color='g', linestyle='dashed', linewidth=1)
 plt.xlabel("Overlap Count")
 plt.ylabel("Density")
 plt.title("Density Plot of Overlap Count")
-plt.xlim(-5, 30)
+plt.xlim((mean - 3 * std) - 100, (mean + 3 * std) + 100)
+plt.legend(["Density", "Mean", "3 Sigma"])
 plt.show()
+
+# print percentage of overlap count less than +3 sigma
+print(df[df["Overlap Count"] > mean + 3 * std].shape[0] / df.shape[0])
 
 # remove overlap count less than +3 sigma
 df = df[df["Overlap Count"] > mean + 3 * std]
@@ -77,10 +81,11 @@ pivot_table = pivot_table[pivot_table.max().sort_values(ascending=True).index]
 print(pivot_table.max().max())
 
 
-plt.figure(figsize=(25, 8))
+# plt.figure(figsize=(25, 8))
 sns.heatmap(pivot_table, cmap="mako_r", annot=False, fmt="d", linecolor="grey", square=False, xticklabels=False, yticklabels=False)
 # make the plot fit the window
 plt.tight_layout()
+plt.title("Heatmap of Overlap Count")
 plt.savefig('heatmap.png', dpi=500, bbox_inches='tight')
 plt.show()
 # save the picture
