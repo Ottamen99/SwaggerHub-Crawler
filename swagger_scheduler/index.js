@@ -99,8 +99,14 @@ let checkUrlsQueue = async () => {
     await addElementsToQueue(allNewUrls, priorities.HIGH)
 
     // FOR URL UPDATE
-    const allKnownUrls = await databaseManager.getAllKnownURLs(dbClient, MAX_NUMBER_OF_FETCHES - fetchCounter, allQueue).catch(err => console.log(err))
-    await addElementsToQueue(allKnownUrls, priorities.MEDIUM)
+    if (allNewUrls.length === 0) {
+        const allKnownUrls = await databaseManager.getAllKnownURLs(dbClient, MAX_NUMBER_OF_FETCHES - fetchCounter, allQueue).catch(err => console.log(err))
+        console.log("----- UPDATE URLS -----")
+        console.log("Fetch counter: ", fetchCounter)
+        console.log("All queue: ", allQueue)
+        console.log("All new urls: ", allNewUrls.length)
+        await addElementsToQueue(allKnownUrls, priorities.MEDIUM)
+    }
 }
 
 let runSchedule = async () => {
