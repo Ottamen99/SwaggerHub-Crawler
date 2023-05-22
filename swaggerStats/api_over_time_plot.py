@@ -24,17 +24,34 @@ timestamps2 = [d["timestamp"] for d in data2]
 timestamps2 = [datetime.strptime(t, "%Y-%m-%dT%H:%M:%S.%fZ") for t in timestamps2]
 num_urls2 = [d["urlCount"] for d in data2]
 
-# plot the data on separate graphs but same figure
+# # plot the data on separate graphs but same figure
+# # figure wider
+# plt.figure(figsize=(20, 8))
+# fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
+# ax1.plot(timestamps, num_urls)
+# ax1.set_ylabel("Number of APIs processed")
+# ax2.plot(timestamps2, num_urls2)
+# ax2.set_ylabel("Number of URLs of APIs")
+# ax2.set_xlabel("Timestamp of the data")
+# plt.xticks(rotation=90)
+# plt.tight_layout()
+# # plt.title("Number of APIs and URLs processed over time")
+# plt.savefig("apis_over_time.png")
+# plt.show()
+
+# plot the data on separate graphs
 # figure wider
 plt.figure(figsize=(20, 8))
-fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
-ax1.plot(timestamps, num_urls)
-ax1.set_ylabel("Number of APIs processed")
-ax2.plot(timestamps2, num_urls2)
-ax2.set_ylabel("Number of URLs of APIs")
-ax2.set_xlabel("Timestamp of the data")
+plt.plot(timestamps2, num_urls2)
+plt.ylabel("Number of URLs processed")
+plt.xlabel("Timestamp of the data")
 plt.xticks(rotation=90)
+plt.title("Number of URLs processed over time")
+
+# Highlight the th part after the 16 of May
+plt.axvspan(datetime(2023, 5, 16), datetime(2023, 5, 18), color='yellow', alpha=0.5)
+
+
 plt.tight_layout()
-# plt.title("Number of APIs and URLs processed over time")
-plt.savefig("apis_over_time.png")
+plt.savefig("urls_over_time.png")
 plt.show()

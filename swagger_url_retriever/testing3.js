@@ -58,13 +58,13 @@ let count = 0;
     console.log(ids)
 
     // // remove all the ids from the queue in database
-    // ids = ids.map((id) => {
-    //     return new ObjectId(id)
-    // })
-    //
-    // await collection2.deleteMany({urlObject: {$in: ids}}).then((result) => {
-    //     console.log(result)
-    // })
+    ids = ids.map((id) => {
+        return new ObjectId(id)
+    })
+
+    await collection2.deleteMany({urlObject: {$in: ids}}).then((result) => {
+        console.log(result)
+    })
 
     // collection1.find({_fetch_counter: 1}).toArray().then(async (documents) => {
     //     for (let doc of tqdm(documents)) {

@@ -99,8 +99,8 @@ let checkUrlsQueue = async () => {
     await addElementsToQueue(allNewUrls, priorities.HIGH)
 
     // FOR URL UPDATE
-    // const allKnownUrls = await databaseManager.getAllKnownURLs()
-    // addElementsToQueue(allKnownUrls, priorities.MEDIUM)
+    const allKnownUrls = await databaseManager.getAllKnownURLs(dbClient, MAX_NUMBER_OF_FETCHES - fetchCounter, allQueue).catch(err => console.log(err))
+    await addElementsToQueue(allKnownUrls, priorities.MEDIUM)
 }
 
 let runSchedule = async () => {
@@ -187,32 +187,3 @@ let main = async () => {
 }
 
 main()
-    // Refresh the Tor session every 30 seconds
-    // console.log(tr.TorControlPort)
-    // setInterval(() => {
-    //     tr.newTorSession(function (err, done) {
-    //         if (err) throw err;
-    //     });
-    // }, 30000);
-
-    // setInterval(() => {
-    //     tr.request({
-    //         url: 'https://api.ipify.org/',
-    //         // torControlPort: torControlPort,
-    //         // torControlPassword: torControlPassword,
-    //         method: 'GET',
-    //         headers: {
-    //             'Content-Type': 'application/json',
-    //         },
-    //         // body: JSON.stringify({
-    //         //     'signal': 'NEWNYM',
-    //         // }),
-    //     },(error, response, body) => {
-    //         if (!error && response.statusCode === 200) {
-    //             console.log('Your public IP address is:', body);
-    //         } else {
-    //             console.error('Error getting IP address:', error);
-    //         }
-    //     });
-    // }, 5000);
-

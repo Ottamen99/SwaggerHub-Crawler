@@ -106,8 +106,13 @@ exports.getAllNewURLs = async (client, fetchLimit, offset) => {
     ]).toArray()
 }
 
-exports.getAllKnownURLs = async (client) => {
-    return await client.db.collection('urls').find({_fetch_counter: {$gt: 0}}).toArray();
+exports.getAllKnownURLs = async (client, fetchLimit, offset) => {
+    return await client.db.collection('urls').aggregate([
+        { $sort: { _fetch_counter: 1 } },
+        { $skip: offset },
+        { $match: { "_fetch_counter": {$gt: 0} } },
+        { $limit: fetchLimit }
+    ]).toArray()
 }
 
 // check if element is in the queue by urlObject
