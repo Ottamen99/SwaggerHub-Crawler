@@ -4,7 +4,7 @@ exports.priorities = {
     LOW: 2
 }
 
-exports.refreshTimer = 1000 * (process.env.REFRESH_RATE || 20)
+exports.refreshTimer = 1000 * (process.env.REFRESH_RATE || 60)
 
 exports.fetchLimitSize = 1172
 
