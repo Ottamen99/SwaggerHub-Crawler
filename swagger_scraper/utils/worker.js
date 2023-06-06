@@ -18,9 +18,6 @@ let dbClient
 let endFlag = false
 
 async function consumeApiUrls(incomingData) {
-        // get corresponding api from db
-        // const result = JSON.parse(message.value.toString())
-
         switch (incomingData.priority) {
             case config.priorities.HIGH:
                 try {
@@ -136,7 +133,9 @@ async function updateInfoUrl(apiUrl, queryResultStatus) {
 
     // Update URL object in db
     const filter_url = {_url: urlObject.url};
-    const update_url = await dbManager.updateURL(dbClient, filter_url, urlObject);
+    const update_url = await dbManager.updateURL(dbClient, filter_url, urlObject).catch((err) => {
+        console.log(err);
+    });
     console.log(`[URL] => ${update_url.matchedCount} document(s) matched the filter criteria.`);
     console.log(`[URL] => ${update_url.modifiedCount} document(s) were updated.`);
 }
@@ -157,13 +156,6 @@ async function getApiFromSwagger(apiUrlHash, retries) {
                 status: res.status
             }
         })
-        // const queryResult = await axios.get(apiObject.API_url).then((res) => {
-        //     return {
-        //         data: res.data,
-        //         headers: res.headers,
-        //         status: res.status
-        //     }
-        // })
         return {apiObject, queryResult};
     } catch (err) {
         const urlObject = new UrlObject(await dbManager.getURL(dbClient, apiObject.API_url));

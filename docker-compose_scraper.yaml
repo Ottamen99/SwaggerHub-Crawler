@@ -17,7 +17,7 @@ services:
     network_mode: "host"
     environment:
       - MONGO_HOST=mongodb://localhost:27017/swagger
-      - REFRESH_RATE=20
+      - REFRESH_RATE=60
   scraper:
     container_name: swagger_scraper
     build: ./swagger_scraper

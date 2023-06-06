@@ -1,3 +1,4 @@
+const {ObjectId} = require("mongodb");
 exports.addAPIs = (client, apiObjects) => {
     return client.db.collection('apis').insertMany(apiObjects);
 }
@@ -67,6 +68,10 @@ exports.getAPIProxy = async (client, query) => {
     return await client.db.collection('proxyUrls').findOne({query: query})
 }
 
+exports.getAPIProxyById = async (client, id) => {
+    return await client.db.collection('proxyUrls').findOne({_id: id})
+}
+
 exports.getAllAPIProxy = async (client) => {
     return await client.db.collection('proxyUrls').find().toArray();
 }
@@ -89,7 +94,7 @@ exports.insertNewQueueElement = async (client, newQueueElement) => {
 
 exports.updateAPIProxy = async (client, id) => {
     const options = { upsert: false };
-    return await client.db.collection('proxyUrls').updateOne({_id: id}, { $inc: { processed: 1 } }, options);
+    return await client.db.collection('proxyUrls').updateOne({_id: new ObjectId(id)}, { $inc: { processed: 1 } }, options).catch(err => console.log(err));
 }
 
 exports.getOwnersNames = async (client) => {
@@ -99,4 +104,38 @@ exports.getOwnersNames = async (client) => {
 exports.setOverlap = async (client, proxyUrlNoPage, overlaps) => {
     const options = { upsert: true };
     return await client.db.collection('statsUrl').updateOne({proxyQuery: proxyUrlNoPage}, { $set: {overlaps: overlaps} }, options);
+}
+
+exports.setOverlapTest = async (client, proxyUrlNoPage, overlappingQuery) => {
+    const options = { upsert: true };
+    return await client.db.collection('statsUrl').updateOne({ $and: [
+            { proxyQuery: proxyUrlNoPage },
+            { overlappingQuery: overlappingQuery }
+        ]}, { $inc: {overlaps: 1} }, options);
+}
+
+exports.getMaxProcessed = async (client) => {
+    const result = await client.db.collection('proxyUrls').aggregate([
+        { $group: { _id: null, maxValue: { $max: "$processed" } } }
+    ]).toArray();
+
+    return result[0].maxValue;
+}
+
+exports.getMinProcessed = async (client) => {
+    const result = await client.db.collection('proxyUrls').aggregate([
+        { $group: { _id: null, minValue: { $min: "$processed" } } }
+    ]).toArray();
+    if (result.length === 0) return undefined;
+    return result[0].minValue;
+}
+
+// get all processed 0 times
+exports.getUnprocessed = async (client) => {
+    return await client.db.collection('proxyUrls').find({processed: 0}).toArray();
+}
+
+// get those that have been processed more than 0 times
+exports.getProcessed = async (client) => {
+    return await client.db.collection('proxyUrls').find({processed: {$gt: 0}}).toArray();
 }

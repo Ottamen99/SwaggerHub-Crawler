@@ -104,11 +104,15 @@ exports.getAllNewURLs = async (client, fetchLimit, offset) => {
         { $match: { "_fetch_counter": 0 } },
         { $limit: fetchLimit }
     ]).toArray()
-    // return await client.db.collection('urls').find({_fetch_counter: 0}).sort({_id: 1}).skip(offset).limit(fetchLimit).toArray();
 }
 
-exports.getAllKnownURLs = async (client) => {
-    return await client.db.collection('urls').find({_fetch_counter: {$gt: 0}}).toArray();
+exports.getAllKnownURLs = async (client, fetchLimit, offset) => {
+    return await client.db.collection('urls').aggregate([
+        { $sort: { _fetch_counter: 1 } },
+        { $skip: offset },
+        { $match: { "_fetch_counter": {$gt: 0} } },
+        { $limit: fetchLimit }
+    ]).toArray()
 }
 
 // check if element is in the queue by urlObject
@@ -130,4 +134,22 @@ exports.countAllInQueue = async (client) => {
 
 exports.flushQueue = async (client) => {
     return await client.db.collection('queue').deleteMany({consumed: null});
+}
+
+// count urls in the database
+exports.countURLs = async (client) => {
+    return await client.db.collection('urls').countDocuments();
+}
+
+// count consumed urls in the database
+exports.countConsumedURLs = async (client) => {
+    return await client.db.collection('queue').countDocuments({consumed: true});
+}
+
+exports.insertUrlEvolution = async (client, timestamp, urlCount) => {
+    return await client.db.collection('urlsEvolution').insertOne({timestamp: timestamp, urlCount: urlCount});
+}
+
+exports.insertConsumedUrlEvolution = async (client, timestamp, consumedUrlsCount) => {
+    return await client.db.collection('apisEvolution').insertOne({timestamp: timestamp, consumedUrlsCount: consumedUrlsCount});
 }

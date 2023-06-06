@@ -1,29 +1,29 @@
 const dbManager = require("../db/databaseManager.js");
 const queryConfig = require('../config/queries')
 const {BASE_SWAGGER_PROXY_URL} = require("../config/constants");
+const {pages} = require("../config/queries");
 
 exports.generateQuery = async (client, { ...restParams } = {}) =>{
     const baseUrl = BASE_SWAGGER_PROXY_URL;
     const paramArrays = { ...restParams };
     const cartesianProduct = getCartesianProduct(paramArrays);
     const queries = cartesianProduct.flatMap(params => {
-        return Array.from({ length: 10 }, (_, i) => {
+        return Array.from({ length: pages }, (_, i) => {
             const queryParams = new URLSearchParams({ ...params, page: i }).toString();
             return `${baseUrl}${queryParams}`;
         });
     });
     console.log(`Number of queries generated: ${queries.length}`);
-    let pushedQueries = 0;
-    for (let i = 0; i < queries.length; i++){
-        const query = queries[i];
-        let exists = await dbManager.getAPIProxy(client, query)
-        if (!exists) {
-            await dbManager.addAPIProxy(client, {query: query, processed: 0})
-            pushedQueries++;
-        }
-    }
-    console.log(`Number of queries pushed in database: ${pushedQueries}`);
     return queries;
+}
+
+exports.pushQueryInDatabase = async (client, query) => {
+    let exists = await dbManager.getAPIProxy(client, query)
+    if (!exists) {
+        await dbManager.addAPIProxy(client, {query: query, processed: 0})
+        return true;
+    }
+    return false;
 }
 
 function getCartesianProduct(paramArrays) {

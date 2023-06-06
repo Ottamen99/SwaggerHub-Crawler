@@ -7,7 +7,7 @@ var config = {
     "members": [
         {
             "_id": 1,
-            "host": "mongodb:27017",
+            "host": "localhost:27017",
         }
     ]
 };
