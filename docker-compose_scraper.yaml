@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  tor_proxy:
+    container_name: tor_proxy
+    image: dperson/torproxy
+    restart: always
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    network_mode: "host"
+  scheduler:
+    container_name: scheduler
+    build: ./swagger_scheduler
+    restart: always
+    depends_on:
+      - tor_proxy
+    network_mode: "host"
+    environment:
+      - MONGO_HOST=mongodb://localhost:27017/swagger
+      - REFRESH_RATE=60
+  scraper:
+    container_name: swagger_scraper
+    build: ./swagger_scraper
+    restart: always
+    depends_on:
+      - tor_proxy
+      - scheduler
+    network_mode: "host"
+    environment:
+      - MONGO_HOST=mongodb://localhost:27017/swagger
+      - SOCKET_ADDRESS=http://swagger_ui:3000
+      - TOR_PROXY=socks5://localhost:9050
+      - MAX_WORKERS=5
+  url_retriever:
+    container_name: url_retriever
+    build: ./swagger_url_retriever
+    restart: always
+    depends_on:
+      - tor_proxy
+    network_mode: "host"
+    environment:
+      - MONGO_HOST=mongodb://localhost:27017/swagger
+      - TOR_PROXY=socks5://localhost:9050
+  # dashboard:
+  #   container_name: swagger_ui
+  #   build: ./swagger_ui
+  #   ports:
+  #     - 3000:3000
+  #   restart: always
+  #   depends_on:
+  #     - mongo-database
+  #     - scraper
+  #   networks:
+  #     - mongo-network

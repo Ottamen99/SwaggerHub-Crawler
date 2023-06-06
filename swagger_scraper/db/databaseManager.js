@@ -1,52 +1,52 @@
+const config = require('./dbConfig')
 const {ObjectId} = require("mongodb");
-const db = require('./mongoConnector.js')();
 
 // list all databases
-exports.getDatabases = async () => {
-    return await db.admin().listDatabases();
+exports.getDatabases = async (client) => {
+    return await client.db.admin().listDatabases();
 }
 
 
 // ====================== API COLLECTION ======================
 
 // add new api to the database
-exports.addAPI = async (newApi) => {
-    return await db.collection('apis').insertOne(newApi);
+exports.addAPI = async (client, newApi) => {
+    return await client.db.collection('apis').insertOne(newApi);
 }
 
 // add multiple apis to the database
-exports.addAPIs = async (newApis) => {
-    return await db.collection('apis').insertMany(newApis);
+exports.addAPIs = async (client, newApis) => {
+    return await client.db.collection('apis').insertMany(newApis);
 }
 
 // get all apis from the database
-exports.getAPIs = async () => {
-    return await db.collection('apis').find().toArray();
+exports.getAPIs = async (client) => {
+    return await client.db.collection('apis').find().toArray();
 }
 
 // get an api from the database by its API_url_hash
-exports.getAPI = async (API_url_hash) => {
-    return await db.collection('apis').findOne({_API_url_hash: API_url_hash});
+exports.getAPI = async (client, API_url_hash) => {
+    return await client.db.collection('apis').findOne({_API_url_hash: API_url_hash});
 }
 
 // truncate the database
-exports.truncate = async () => {
-    return await db.collection('apis').deleteMany({});
+exports.truncate = async (client) => {
+    return await client.db.collection('apis').deleteMany({});
 }
 
 // update an api in the database, it finds the api by its API_url_hash
-exports.updateAPI = async (filter, newApi) => {
+exports.updateAPI = async (client, filter, newApi) => {
     const options = { upsert: false};
-    return await db.collection('apis').updateOne(filter, { $set: newApi }, options);
+    return await client.db.collection('apis').updateOne(filter, { $set: newApi }, options).catch(err => console.log(err));
 }
 
-exports.updateFetchingRefAPI = async (filter, newMeta) => {
+exports.updateFetchingRefAPI = async (client, filter, newMeta) => {
     const options = { upsert: false};
-    return await db.collection('apis').updateOne(filter, { $set: {_meta: newMeta} }, options);
+    return await client.db.collection('apis').updateOne(filter, { $set: {_meta: newMeta} }, options);
 }
 
-exports.getLastUpdatedApi = async (API_url_hash) => {
-    return await db.collection('apis').find({ _API_url_hash: API_url_hash })
+exports.getLastUpdatedApi = async (client, API_url_hash) => {
+    return await client.db.collection('apis').find({ _API_url_hash: API_url_hash })
         .sort({ updatedAt: -1 })
         .toArray(function(err, docs) {
             if (err) throw err;
@@ -57,99 +57,73 @@ exports.getLastUpdatedApi = async (API_url_hash) => {
 
 // ====================== URL COLLECTION ======================
 
-exports.addURL = async (newUrl) => {
-    return await db.collection('urls').insertOne(newUrl);
+exports.addURL = async (client, newUrl) => {
+    return await client.db.collection('urls').insertOne(newUrl);
 }
 
-exports.addURLs = async (newUrls) => {
-    return await db.collection('urls').insertMany(newUrls);
+exports.addURLs = async (client, newUrls) => {
+    return await client.db.collection('urls').insertMany(newUrls);
 }
 
-exports.getURLs = async () => {
-    return await db.collection('urls').find().toArray();
+exports.getURLs = async (client) => {
+    return await client.db.collection('urls').find().toArray();
 }
 
-exports.getURL = async (url) => {
-    return await db.collection('urls').findOne({_url: url})
+exports.getURL = async (client, url) => {
+    return await client.db.collection('urls').findOne({_url: url})
 }
 
-exports.truncateURLs = async () => {
-    return await db.collection('urls').deleteMany({});
+exports.truncateURLs = async (client) => {
+    return await client.db.collection('urls').deleteMany({});
 }
 
-exports.updateSuccessCounter = async (url) => {
-
-}
-
-exports.updateFailureCounter = async (url) => {
-
-}
-
-exports.updateURL = async (filter, newUrl) => {
+exports.updateURL = async (client, filter, newUrl) => {
     const options = { upsert: false};
-    return await db.collection('urls').updateOne(filter, { $set: newUrl }, options);
+    return await client.db.collection('urls').updateOne(filter, { $set: newUrl }, options);
 }
 
-exports.addNewFetch = async (url) => {
-
-}
-
-exports.checkIfURLExists = async (url) => {
-
-}
-
-exports.getUrlIfExists = async (url) => {
-    return await db.collection('urls').findOne({_url: url})
+exports.getUrlIfExists = async (client, url) => {
+    return await client.db.collection('urls').findOne({_url: url})
 }
 
 
 // ====================== FETCH COLLECTION ======================
 
-exports.addFetch = async (newFetch) => {
-    return await db.collection('fetches').insertOne(newFetch);
+exports.addFetch = async (client, newFetch) => {
+    return await client.db.collection('fetches').insertOne(newFetch);
 }
 
-exports.addFetches = async (newFetches) => {
-    return await db.collection('fetches').insertMany(newFetches);
+exports.addFetches = async (client, newFetches) => {
+    return await client.db.collection('fetches').insertMany(newFetches);
 }
 
-exports.getFetches = async () => {
-    return await db.collection('fetches').find().toArray();
+exports.getFetches = async (client) => {
+    return await client.db.collection('fetches').find().toArray();
 }
 
-exports.getFetch = async (fetchRef) => {
-
+exports.removeElementFromQueue = async (client, elem) => {
+    return await client.db.collection('queue').deleteOne({_id: new ObjectId(elem._id)});
 }
 
-
-// ====================== APIPROXY COLLECTION ======================
-
-exports.addAPIProxy = async (newAPIProxy) => {
-    return await db.collection('proxyUrls').insertOne(newAPIProxy);
+exports.countElementsInQueueNotConsumed = async (client) => {
+    return await client.db.collection('queue').countDocuments({consumed:null});
+    // return QueueModel.countDocuments({consumed: null});
 }
 
-exports.addAPIProxies = async (newAPIProxies) => {
-    return await db.collection('proxyUrls').insertMany(newAPIProxies);
-}
-
-// check if exists
-exports.getAPIProxy = async (query) => {
-    return await db.collection('proxyUrls').findOne({query: query})
-}
-
-exports.getAPIProxyCursor = () => {
-    return db.collection('proxyUrls').find();
+exports.getQueueCursor = async (client) => {
+    // await new Promise(resolve => setTimeout(resolve, 2000))
+    return client.db.collection('queue').find({consumed:null})
 }
 
 
-exports.removeElementFromQueue = async (elem) => {
-    return await db.collection('queue').deleteOne({_id: new ObjectId(elem._id)});
+exports.flagConsumeElement = async (client, elem) =>{
+    await client.db.collection('queue').updateOne({_id: new ObjectId(elem._id)},{$set: {consumed:true}} )
 }
 
-exports.countElementsInQueue = async () => {
-    return await db.collection('queue').countDocuments();
+exports.getQueueElementsNotConsumed = async (client) => {
+    return await client.db.collection('queue').find({consumed:null}).toArray();
 }
 
-exports.getQueueCursor = () => {
-    return db.collection('queue').find();
+exports.getElementToCheck = async (client, elem) => {
+    return await client.db.collection('urls').find({_id: new ObjectId(elem._id)})
 }

@@ -1,9 +1,17 @@
 class UrlObject {
+    get proxyUrl() {
+        return this._proxyUrl;
+    }
+
+    set proxyUrl(value) {
+        this._proxyUrl = value;
+    }
     _id = null;
     _url = "";
     _fetch_counter = 0;
     _number_of_success = 0;
     _number_of_failure = 0;
+    _proxyUrl = "";
 
     constructor(newUrl) {
         Object.assign(this, newUrl);

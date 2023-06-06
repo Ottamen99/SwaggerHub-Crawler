@@ -1,55 +1,34 @@
 const ipc = require('node-ipc').default;
-const workerPool = require('workerpool')
-const databaseManager = require('../db/databaseManager')
-const {sendStats} = require("./wsManager");
 const {ipcConfigClient, workerPoolConfig} = require("../config/config");
+const Piscina = require('piscina');
 
-const pool = workerPool.pool('../worker.js', {
-    minWorkers: workerPoolConfig.minWorkers,
-    maxWorkers: workerPoolConfig.maxWorkers
-})
+
+const pool = new Piscina({
+    filename: __dirname + '/worker.js',
+    minThreads: workerPoolConfig.minWorkers,
+    maxThreads: workerPoolConfig.maxWorkers
+});
 
 ipc.config.id = ipcConfigClient.id;
 ipc.config.retry = ipcConfigClient.retry;
 ipc.config.maxRetries = ipcConfigClient.maxRetries;
 ipc.config.silent = ipcConfigClient.silent;
 
-let queryCounter = 0;
+let messageHandler = async (data) => {
+    await pool.run({ incomingData: data });
+};
 
-let messageHandler = (data) => {
-    queryCounter++
-    if (queryCounter > 1171) {
-        ipc.of[ipcConfigClient.id].off('message', messageHandler);
-        new Promise(resolve => setTimeout(resolve, 91000)).then(() => {
-            ipc.of[ipcConfigClient.id].on('message', messageHandler);
-            queryCounter = 0
-            pool.exec("consumeApiUrls", [data])
-                .then(async (result) => {
-                    await databaseManager.removeElementFromQueue(data)
-                    await sendStats(pool.stats())
-                })
-                .catch((err) => {
-                    console.log(err)
-                })
-        })
-    } else {
-        pool.exec("consumeApiUrls", [data])
-            .then(async (result) => {
-                await databaseManager.removeElementFromQueue(data)
-                await sendStats(pool.stats())
-            })
-            .catch((err) => {
-            console.log(err)
-        })
-    }
+let main = async () => {
+    console.log("STARTING CONSUMER POOL")
+    ipc.connectTo('world', () => {
+        ipc.of[ipcConfigClient.id].on('message', messageHandler);
+        ipc.of[ipcConfigClient.id].on(
+            'disconnect',
+            () => {
+                ipc.log('disconnected from world');
+            }
+        );
+    })
 }
 
-ipc.connectTo('world', () => {
-    ipc.of[ipcConfigClient.id].on('message', messageHandler);
-    ipc.of[ipcConfigClient.id].on(
-        'disconnect',
-        function(){
-            ipc.log('disconnected from world');
-        }
-    );
-})
+main()

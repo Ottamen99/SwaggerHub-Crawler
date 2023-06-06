@@ -1,19 +1,30 @@
 const config = require('./dbConfig')
-const { MongoClient } = require('mongodb');
+const mongoose = require('mongoose');
 
-
-// create a new MongoClient
-const client = new MongoClient(config.URI, {connectTimeoutMS: 100000});
-
-// connect to the server
-client.connect((err) => {
-    if (err) {
-        console.log('Error connecting to MongoDB', err);
-    } else {
-        console.log('Connected to MongoDB');
+let connectUsingMongoose = async (retryInterval = 5000) => {
+    let attempt = 1;
+    while (true) {
+        try {
+            let conn = await mongoose.createConnection(config.URI, {
+                useNewUrlParser: true,
+                useUnifiedTopology: true,
+                maxIdleTimeMS: 86400000, // 24 hours
+                serverSelectionTimeoutMS: 250,
+                directConnection: true,
+            }).asPromise()
+            console.log('Connected to MongoDB');
+            return conn;
+        } catch (err) {
+            // catching initial connection error
+            console.log(`Error connecting to MongoDB (attempt ${attempt}):`);
+            await new Promise(resolve => setTimeout(resolve, retryInterval));
+        }
+        attempt++;
     }
-});
+}
+let closeConnection = async (client) => {
+    await client.close({ force: true })
+}
 
-module.exports = () => {
-    return client.db(config.DATABASE_NAME);
-};
+module.exports.closeConnection = closeConnection;
+module.exports.connectUsingMongoose = connectUsingMongoose;

@@ -1,29 +1,41 @@
-const {buildUrl} = require("./utilityFunctions.js");
 const dbManager = require("../db/databaseManager.js");
-const tqdm = require('tqdm');
 const queryConfig = require('../config/queries')
+const {BASE_SWAGGER_PROXY_URL} = require("../config/constants");
+const {pages} = require("../config/queries");
 
-exports.generateQueries = async () => {
-    // build url for each query with all parameters with pages 0 to 100
-    console.log('Generating queries...')
-    for (let s of queryConfig.sort_by) {
-        for (let o of queryConfig.order) {
-            for (let spec of queryConfig.spec) {
-                for (let p of tqdm(queryConfig.page)) {
-                    let tmpLimit = queryConfig.limit
-                    if (p === 100) {
-                        tmpLimit = 99
-                    }
-                    let tmpQuery = buildUrl(s, o, tmpLimit, p, queryConfig.owner, spec)
-                    let exists = await dbManager.getAPIProxy(tmpQuery)
-                    if (!exists) {
-                        await dbManager.addAPIProxy({query: tmpQuery})
-                    }
-                }
-            }
-        }
-    }
+exports.generateQuery = async (client, { ...restParams } = {}) =>{
+    const baseUrl = BASE_SWAGGER_PROXY_URL;
+    const paramArrays = { ...restParams };
+    const cartesianProduct = getCartesianProduct(paramArrays);
+    const queries = cartesianProduct.flatMap(params => {
+        return Array.from({ length: pages }, (_, i) => {
+            const queryParams = new URLSearchParams({ ...params, page: i }).toString();
+            return `${baseUrl}${queryParams}`;
+        });
+    });
+    console.log(`Number of queries generated: ${queries.length}`);
+    return queries;
 }
-exports.generateOwenrQueries = async () => {
 
+exports.pushQueryInDatabase = async (client, query) => {
+    let exists = await dbManager.getAPIProxy(client, query)
+    if (!exists) {
+        await dbManager.addAPIProxy(client, {query: query, processed: 0})
+        return true;
+    }
+    return false;
+}
+
+function getCartesianProduct(paramArrays) {
+    const keys = Object.keys(paramArrays);
+    const values = keys.map(key => paramArrays[key]);
+    const result = values.reduce((acc, arr) => {
+        return acc.flatMap(x => arr.map(y => [...x, y]));
+    }, [[]]);
+    return result.map(arr => {
+        return arr.reduce((acc, val, i) => {
+            acc[keys[i]] = val;
+            return acc;
+        }, {});
+    });
 }
