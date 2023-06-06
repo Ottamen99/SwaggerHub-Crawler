@@ -2,7 +2,7 @@ const axios = require('axios');
 const apiManager = require("./utils/apiManager");
 const databaseManager = require('./db/databaseManager');
 const {UrlObject} = require("./models/UrlObject");
-const {parseOwner, hashString} = require("./utils/utilityFunctions");
+const {parseOwner} = require("./utils/utilityFunctions");
 const {updateApis} = require("./utils/apiManager");
 const {connectUsingMongoose, closeConnection} = require("./db/mongoConnector");
 const {setOverlapTest} = require("./db/databaseManager");
@@ -11,42 +11,65 @@ let dbClient
 let alreadyInDbCounter = 0;
 let endFlag = false
 
-let overlaps = []
-
-// get list of APIs urls
-let getAPIListUrls = (url) => {
+/**
+ * Get the list of urls of APIs from SwaggerHub API Proxy
+ * @param url - url of SwaggerHub API Proxy
+ * @returns {Promise<unknown>} - list of urls
+ */
+let getListOfUrls = (url) => {
     return new Promise((resolve, reject) => {
         axios({
             method: 'get',
             url: url
         }).then((res) => {
-            updateApis(dbClient, res.data.apis.map(api => apiManager.createAPIObject(api))).then(_ => {
-                resolve(res.data.apis.map(api => api.properties[0].url));
-            }).catch(err => {
-                reject(err);
-            })
-        }).catch((err) => {
-            reject(err);
-        });
+            let apiObjects = res.data.apis.map(api => apiManager.createAPIObject(api));
+            let urlsList = res.data.apis.map(api => api.properties[0].url);
+            updateApis(dbClient, apiObjects).then(_ => resolve(urlsList)).catch(err => reject(err))
+        }).catch((err) => reject(err));
     });
 };
 
+/**
+ * Build a new UrlObject from url and proxyUrl
+ * @param url - url
+ * @param proxyUrl - proxy url
+ * @returns {UrlObject} - new UrlObject
+ */
+const buildNewUrlObject = (url, proxyUrl) => {
+    const urlObject = new UrlObject()
+    urlObject.url = url
+    urlObject.proxyUrl = proxyUrl
+    urlObject.fetch_counter = 0
+    urlObject.number_of_failure = 0
+    urlObject.number_of_success = 0
+    return urlObject;
+}
+
+/**
+ * Check if owner is in database and insert it if it is not
+ * @param ownerName - owner name
+ * @returns {Promise<void>} - void
+ */
+const checkOwnerAndInsert = async (ownerName) => {
+    const ownerInDb = await databaseManager.getOwnerIfExists(dbClient, ownerName)
+    if (!ownerInDb) {
+        await databaseManager.addNewOwner(dbClient, ownerName)
+    }
+}
+
+/**
+ * Insert url in database if it does not exist
+ * @param url - url to insert
+ * @param proxyUrl - proxy url that was used to retrieve the url
+ * @returns {Promise<void>} - void
+ */
 const insertUrlIfNotExists = async (url, proxyUrl) => {
     // check if url is already in database
     let urlInDB = await databaseManager.getUrlIfExists(dbClient, url)
     if (!urlInDB) {
-        // add it to database
-        const urlObject = new UrlObject()
-        urlObject.url = url
-        urlObject.proxyUrl = proxyUrl
-        urlObject.fetch_counter = 0
-        urlObject.number_of_failure = 0
-        urlObject.number_of_success = 0
-
-        const ownerInDb = await databaseManager.getOwnerIfExists(dbClient, parseOwner(urlObject.url))
-        if (!ownerInDb) {
-            await databaseManager.addNewOwner(dbClient, {name: parseOwner(urlObject.url)})
-        }
+        const urlObject = buildNewUrlObject(url, proxyUrl);
+        // check if owner is already in database
+        await checkOwnerAndInsert(parseOwner(urlObject.url));
         await databaseManager.addURL(dbClient, urlObject)
     } else {
         alreadyInDbCounter++
@@ -54,8 +77,9 @@ const insertUrlIfNotExists = async (url, proxyUrl) => {
         // get the proxy url without the page number
         const urlObjectProxyUrlWithoutPageNumber = urlObject._proxyUrl.split('&page=')[0]
         const proxyUrlWithoutPageNumber = proxyUrl.split('&page=')[0]
-        // check if proxy  url is aleady in the list of object of overlapping proxy urls
+        // check if the proxy url is different from the one in the database
         if (urlObjectProxyUrlWithoutPageNumber !== proxyUrlWithoutPageNumber) {
+            // add new overlap to database
             await setOverlapTest(dbClient, urlObjectProxyUrlWithoutPageNumber, proxyUrlWithoutPageNumber)
         }
     }
@@ -76,7 +100,7 @@ const handleDisconnect = async (incomingData) => {
 
 const retrieveURLs = async (incomingUrl) => {
     let requestCounter = 0
-    let urls = await getAPIListUrls(incomingUrl.query);
+    let urls = await getListOfUrls(incomingUrl.query);
     // get count of urls
     let countForAnApiProxy = urls.length
     for (const url of urls) {
