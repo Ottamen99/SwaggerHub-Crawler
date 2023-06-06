@@ -1,4 +1,42 @@
+/**
+ * Class representing an API object of the "apis" collection in the database.
+ * @class ApiObject
+ * @property {string} id - The id of the API object.
+ * @property {object} meta - The meta data of the API object.
+ * @property {string} name - The name of the API object.
+ * @property {string} description - The description of the API object.
+ * @property {string} created_at - The creation date of the API object.
+ * @property {string} last_modified - The last modification date of the API object.
+ * @property {string} created_by - The user who created the API object.
+ * @property {string} API_url - The URL of the API object.
+ * @property {string} version - The version of the API object.
+ * @property {string} OPENAPI_version - The OpenAPI version of the API object.
+ * @property {object} API_spec - The OpenAPI specification of the API object.
+ * @property {string} API_spec_hash - The hash of the OpenAPI specification of the API object.
+ * @property {string} API_url_hash - The hash of the URL of the API object.
+ * @property {object} fetching_reference - The reference to the fetching object of the API object.
+ * @property {object} API_reference - The base URL of the API object.
+ */
 class ApiObject {
+
+    _id = null;
+    _fetching_reference = null;
+    _API_reference = null;
+    _meta = {
+        server: {},
+        is_valid_JSON_spec: null,
+    }
+    _name = null;
+    _description = null;
+    _created_at = null;
+    _last_modified = null;
+    _created_by = null;
+    _API_url = null;
+    _version = null;
+    _OPENAPI_version = null;
+    _API_spec = {}
+    _API_spec_hash = null;
+    _API_url_hash = null;
     get fetching_reference() {
         return this._fetching_reference;
     }
@@ -127,25 +165,6 @@ class ApiObject {
     set API_spec_hash(value) {
         this._API_spec_hash = value;
     }
-    _id = null;
-    _fetching_reference = null;
-    _API_reference = null;
-    _meta = {
-        server: {},
-        is_valid_JSON_spec: null,
-    }
-    _name = null;
-    _description = null;
-    _created_at = null;
-    _last_modified = null;
-    _created_by = null;
-    _API_url = null;
-    _version = null;
-    _OPENAPI_version = null;
-    _API_spec = {}
-    _API_spec_hash = null;
-
-    _API_url_hash = null;
 }
 
 module.exports = {ApiObject}

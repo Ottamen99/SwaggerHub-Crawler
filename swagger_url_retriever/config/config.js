@@ -1,4 +1,12 @@
-const PRIORITIES = {
+/**
+ * The configuration for the SwaggerHub URL Retriever
+ */
+
+/**
+ * Priority of the URLs
+ * @type {{HIGH: number, MEDIUM: number, LOW: number}}
+ */
+exports.PRIORITIES = {
     HIGH: 0,
     MEDIUM: 1,
     LOW: 2
