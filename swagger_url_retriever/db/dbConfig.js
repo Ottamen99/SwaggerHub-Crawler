@@ -1,7 +1,6 @@
-const URI = 'mongodb://localhost:27017/swagger';
-const DATABASE_NAME = 'swagger';
+/**
+ * Database configuration file
+ */
 
-module.exports = {
-    URI,
-    DATABASE_NAME
-}
+exports.URI = 'mongodb://localhost:27017/swagger'; // Connection URI for MongoDB
+exports.DATABASE_NAME = 'swagger'; // Database name
