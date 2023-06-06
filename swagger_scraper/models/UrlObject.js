@@ -1,3 +1,12 @@
+/**
+ * Class representing a UrlObject of document in "urls" collection in MongoDB.
+ * @class UrlObject
+ * @property {object} _id - The reference to the Url object.
+ * @property {string} _url - The reference to the Url object.
+ * @property {number} _fetch_counter - The reference to the Url object.
+ * @property {number} _number_of_success - The reference to the Url object.
+ * @property {number} _number_of_failure - The reference to the Url object.
+ */
 class UrlObject {
     _id = null;
     _url = "";

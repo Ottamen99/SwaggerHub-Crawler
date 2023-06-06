@@ -6,9 +6,9 @@ const dbManager = require('../db/databaseManager.js');
 const {hashString, parseOwner} = require("./utilityFunctions");
 const {UrlObject} = require("../models/UrlObject");
 const {FetchingObject} = require("../models/FetchingObject");
-const {LOW_PRIORITY_TIMEOUT, TOR_PROXY} = require("../config/constants");
+const { TOR_PROXY } = require("../config/config");
 const { SocksProxyAgent } = require('socks-proxy-agent');
-const {closeConnection, hasBeenClosed, connectToMongo, connectUsingMongoose} = require("../db/mongoConnector");
+const {closeConnection, connectUsingMongoose} = require("../db/mongoConnector");
 const {getElementToCheck, flagConsumeElement} = require("../db/databaseManager");
 const databaseManager = require("../db/databaseManager");
 
@@ -17,9 +17,9 @@ let dbClient
 
 let endFlag = false
 
-async function consumeApiUrls(incomingData) {
-        switch (incomingData.priority) {
-            case config.priorities.HIGH:
+const consumeApiUrls = async (incomingData) => {
+        switch (incomingData.priority) { // Check priority of the url to be consumed and act accordingly
+            case config.priorities.HIGH: // new URL
                 try {
                     const resultUrlObjectHigh = new UrlObject(JSON.parse(incomingData.urlObject));
                     console.log('\n\nPartition high priority');
@@ -30,7 +30,8 @@ async function consumeApiUrls(incomingData) {
                         await new Promise(resolve => setTimeout(resolve, 2000));
                     }
                     console.log("Connection established")
-                    // convert data to Url object
+                    // flag as consumed on reconnect
+                    // TODO: check if this is the right way to do it
                     const urlObj = new UrlObject(JSON.parse(incomingData.urlObject))
                     const dbCheckObj = await getElementToCheck(dbClient, urlObj)
                     if (urlObj._fetch_counter < dbCheckObj._fetch_counter) {
@@ -39,7 +40,7 @@ async function consumeApiUrls(incomingData) {
                     }
                 }
                 break;
-            case config.priorities.MEDIUM:
+            case config.priorities.MEDIUM: // URL to be updated
                 const resultUrlObjectMedium = new UrlObject(JSON.parse(incomingData.urlObject));
                 console.log('\n\nPartition medium priority');
                 await updateAPI(resultUrlObjectMedium, incomingData.API_url_hash, 0)
@@ -47,12 +48,19 @@ async function consumeApiUrls(incomingData) {
         }
 }
 
-async function createFetchObjAndInsertDb(apiObject, apiUrlObject, queryResult) {
+/**
+ * Create fetch object and insert it into the database for a given API
+ * @param apiObject - the API object
+ * @param apiUrlObject - the API url object
+ * @param queryResult - the query result
+ * @returns {Promise<any>} - the inserted object id
+ */
+const createFetchObjAndInsertDb = async (apiObject, apiUrlObject, queryResult) => {
     const fetchObject = new FetchingObject()
     fetchObject.API_reference = apiObject.API_reference
     fetchObject.url_id = apiUrlObject.id; // ID of the URL
     fetchObject.timestamp = new Date().toISOString();
-    if (queryResult.headers) {
+    if (queryResult.headers) { // check if the query result has been successful
         fetchObject.headers = queryResult.headers;
         fetchObject.response_code = queryResult.status;
         fetchObject.still_alive = queryResult.status === 200;
@@ -67,6 +75,13 @@ async function createFetchObjAndInsertDb(apiObject, apiUrlObject, queryResult) {
     return inserted.insertedId
 }
 
+/**
+ * Fetch the API and add it to the database
+ * @param apiUrlObject - the API url object
+ * @param apiUrlHash - the API url hash
+ * @param retries - the number of retries
+ * @returns {Promise<boolean>} - true if the API was added successfully, false otherwise
+ */
 const fetchNewAPI = async (apiUrlObject, apiUrlHash, retries) => {
     let {apiObject, queryResult} = await getApiFromSwagger(apiUrlHash, retries);
     apiObject.fetching_reference = await createFetchObjAndInsertDb(apiObject, apiUrlObject, queryResult);
@@ -79,19 +94,22 @@ const fetchNewAPI = async (apiUrlObject, apiUrlHash, retries) => {
 
     console.log('No changes in API spec');
 
-    // Update API object in db
+    // Update API skeleton in db
     const filter = { _API_url_hash: apiObject.API_url_hash };
     const update = await dbManager.updateAPI(dbClient, filter, apiObject);
     console.log(`${update.matchedCount} document(s) matched the filter criteria.`);
     console.log(`${update.modifiedCount} document(s) were updated.`);
 
-    // await updateInfoUrl(apiUrlObject.url, queryResult.status);
     await new Promise((resolve) => setTimeout(resolve, 250));
-
     return true; // API added successfully
 }
 
-function appendQueryResults(apiObject, queryResult) {
+/**
+ * Add query results to the API object
+ * @param apiObject - the API object
+ * @param queryResult - the query result
+ */
+const appendQueryResults = (apiObject, queryResult) => {
 
     apiObject.API_reference = utils.getBaseURL(apiObject.API_url)
 
@@ -120,7 +138,13 @@ function appendQueryResults(apiObject, queryResult) {
     }
 }
 
-async function updateInfoUrl(apiUrl, queryResultStatus) {
+/**
+ * Update the UrlObject in the database based on the query result status
+ * @param apiUrl - the API url
+ * @param queryResultStatus - the query result status
+ * @returns {Promise<void>} - void
+ */
+const updateInfoUrl = async (apiUrl, queryResultStatus) => {
     const url = await dbManager.getURL(dbClient, apiUrl);
     const urlObject = new UrlObject(url);
 
@@ -140,7 +164,7 @@ async function updateInfoUrl(apiUrl, queryResultStatus) {
     console.log(`[URL] => ${update_url.modifiedCount} document(s) were updated.`);
 }
 
-async function getApiFromSwagger(apiUrlHash, retries) {
+const getApiFromSwagger = async (apiUrlHash, retries) => {
     // Get API object from db and convert it to ApiObject
     const api = await dbManager.getAPI(dbClient, apiUrlHash);
     let apiObject = new ApiObject(api);
@@ -148,7 +172,7 @@ async function getApiFromSwagger(apiUrlHash, retries) {
         const queryResult = await axios({
             method: 'get',
             url: apiObject.API_url,
-            httpsAgent: agent,
+            httpsAgent: agent, // Tor agent
         }).then((res) => {
             return {
                 data: res.data,
@@ -158,29 +182,34 @@ async function getApiFromSwagger(apiUrlHash, retries) {
         })
         return {apiObject, queryResult};
     } catch (err) {
-        const urlObject = new UrlObject(await dbManager.getURL(dbClient, apiObject.API_url));
-        const isUpdate = !!apiObject.fetching_reference;
         switch (err.response.status) {
             case 404:
+                // NEED TO HANDLE 404 ERROR USING LOW PRIORITY
                 console.log(`[ERROR] 404 - ${err.response.data.message}`);
-                // await kafkaManager.produceInLowPriority(urlObject, LOW_PRIORITY_TIMEOUT * (retries + 1), retries + 1, isUpdate)
                 return {apiObject, queryResult: {status: 404, error: err.code}};
             case 400:
+                // NEED TO HANDLE 400 ERROR USING LOW PRIORITY
                 console.log(`[ERROR] 400 - ${err.response.data.message}`);
-                // await kafkaManager.produceInLowPriority(urlObject, LOW_PRIORITY_TIMEOUT * (retries + 1), retries + 1, isUpdate)
                 return {apiObject: apiObject, queryResult: {status: 400, error: err.code}};
             case 403:
+                // NEED TO HANDLE 403 ERROR USING LOW PRIORITY
                 console.log(`[ERROR] 403 - ${err.response.data.message}`);
-                // await handleForbiddenError();
                 return {apiObject: apiObject, queryResult: {status: 403, error: err.code}};
             case 500:
+                // NEED TO HANDLE 500 ERROR USING LOW PRIORITY
                 console.log(`[ERROR] 500 - ${err.response.data.message}`);
-                // await kafkaManager.produceInLowPriority(urlObject, LOW_PRIORITY_TIMEOUT * (retries + 1), retries + 1, isUpdate)
                 return {apiObject: apiObject, queryResult: {status: 500, error: err.code}};
         }
     }
 }
 
+/**
+ * Update the API in the database based on a new query on SwaggerHub
+ * @param apiUrlObject - the API url object
+ * @param apiUrlHash - the API url hash
+ * @param retries - the number of retries
+ * @returns {Promise<boolean>} - true if the API has been updated successfully, false otherwise
+ */
 const updateAPI = async (apiUrlObject, apiUrlHash, retries) => {
     let {apiObject, queryResult} = await getApiFromSwagger(apiUrlHash, retries);
     apiObject.fetching_reference = await createFetchObjAndInsertDb(apiObject, apiUrlObject, queryResult);
@@ -219,52 +248,11 @@ const updateAPI = async (apiUrlObject, apiUrlHash, retries) => {
     return true; // return true if the api has been updated
 }
 
-// const handleLowPriority = async (consumedMessage) => {
-//     const apiUrlObject = new UrlObject(JSON.parse(consumedMessage.urlObject));
-//     if (consumedMessage.retryNumber <= 3) {
-//         // await timout
-//         console.log(`[URL] => ${apiUrlObject.url} is dead, retrying in ${consumedMessage.timeoutRetry} ms`)
-//         await new Promise(resolve => setTimeout(resolve, consumedMessage.timeoutRetry));
-//         // this url can be retried again
-//         switch (consumedMessage.isUpdate) {
-//             case true:
-//                 await updateAPI(apiUrlObject, consumedMessage.API_url_hash, consumedMessage.retryNumber);
-//                 break;
-//             case false:
-//                 await fetchNewAPI(apiUrlObject, consumedMessage.API_url_hash, consumedMessage.retryNumber);
-//                 break;
-//         }
-//     } else {
-//         // this url can't be retried anymore
-//         // it will be flagged as dead
-//         console.log(`[URL] => ${apiUrlObject.url} is dead`);
-//     }
-// }
-
-const handleForbiddenError = async () => {
-    // pause consumers
-    await Promise.all([mainConsumer.pause(), lowPriorityConsumer.pause()]);
-    // wait for 60 seconds
-    await new Promise(resolve => setTimeout(resolve, 60000));
-    // resume consumers
-    await Promise.all([mainConsumer.resume(), lowPriorityConsumer.resume()]);
-}
-
-// const retryConsumeApiUrls = async () => {
-//     await lowPriorityConsumer.run({
-//         eachMessage: async ({ _, partition, message }) => {
-//             // get corresponding api from db
-//             const result = JSON.parse(message.value.toString())
-//             switch (partition) {
-//                 case config.priorities.LOW:
-//                     console.log('\n\nPartition low priority');
-//                     await handleLowPriority(result);
-//                     break;
-//             }
-//         }
-//     });
-// }
-
+/**
+ * Handle the disconnection from the database
+ * @param incomingData - url to consume
+ * @returns {Promise<void>} - void
+ */
 const handleDisconnect = async (incomingData) => {
     if (endFlag) return;
     console.log("Mongo disconnected")
@@ -278,6 +266,11 @@ const handleDisconnect = async (incomingData) => {
     await processIncomingData(incomingData);
 }
 
+/**
+ * Process the incoming data
+ * @param incomingData - url to consume
+ * @returns {Promise<void>} - void
+ */
 const processIncomingData = async (incomingData) => {
     let tmpTime = Date.now();
     await consumeApiUrls(incomingData);
@@ -287,7 +280,7 @@ const processIncomingData = async (incomingData) => {
     console.log(`[TIME] => ${Date.now() - tmpTime} ms`);
 }
 
-
+// Main function
 module.exports = async ({incomingData}) => {
     endFlag = false;
     dbClient = await connectUsingMongoose();

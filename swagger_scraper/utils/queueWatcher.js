@@ -1,37 +1,51 @@
 const { getQueueElementsNotConsumed, countElementsInQueueNotConsumed } = require("../db/databaseManager");
-const {ipcConfigServer} = require("../config/config");
+const {ipcConfig} = require("../config/config");
 const {connectUsingMongoose} = require("../db/mongoConnector");
 const ipc = require('node-ipc').default;
 
-ipc.config.id = ipcConfigServer.id;
-ipc.config.retry = ipcConfigServer.retry;
-ipc.config.maxRetries = ipcConfigServer.maxRetries;
-ipc.config.silent = true
+// configures the IPC server
+ipc.config.id = ipcConfig.id;
+ipc.config.retry = ipcConfig.retry;
+ipc.config.maxRetries = ipcConfig.maxRetries;
+ipc.config.silent = ipcConfig.silent;
 
 let dbClient
 
 let changeStream;
-let startAfter
 
 let queueIsEmpty = true;
 let elementsInQueue = 0;
 
-let messageBroadcast = async (change) => {
+/**
+ * Broadcasts a message to all connected clients
+ * @param change - the change in the queue collection
+ * @returns {void} - nothing
+ */
+let messageBroadcast = (change) => {
     if (change.operationType === 'insert') {
         ipc.server.broadcast('message', change.fullDocument);
-        startAfter = change._id;
     }
 }
 
+/**
+ * Sends a message to a specific client
+ * @param socket - the socket of the client
+ * @param channel - the channel to send the message to
+ * @param data - the data to send
+ * @returns {*} - the result of the send operation
+ */
 let send = (socket, channel, data) => {
     return ipc.server.emit(socket, channel, data);
 }
 
+/**
+ * Sends all the elements in the queue to the client
+ * @param socket - the socket of the client
+ * @returns {Promise<void>} - nothing
+ */
 let sendAtStart = async (socket) => {
     const allData = await getQueueElementsNotConsumed(dbClient)
-    allData.forEach((data) => {
-        send(socket, 'message', data)
-    })
+    allData.forEach((data) => send(socket, 'message', data))
     queueIsEmpty = true;
 }
 
@@ -52,7 +66,9 @@ let sendAtStartWithRetry = async (socket) => {
     }
 }
 
-
+/**
+ * Configure the change stream and start listening for changes on IPC server start
+ */
 let onServerStart = () => {
     try {
         changeStream = dbClient.db.collection('queue').watch();
@@ -65,6 +81,11 @@ let onServerStart = () => {
     }
 }
 
+/**
+ * Configure the change stream and start listening for changes on IPC server start
+ *  with retry mechanism
+ * @returns {Promise<void>} - nothing
+ */
 let onServerStartWithRetry = async () => {
     let retries = 1;
     while (true) {
@@ -80,6 +101,11 @@ let onServerStartWithRetry = async () => {
     }
 }
 
+/**
+ * Handles a new connection to the IPC server
+ * @param socket - the socket of the client
+ * @returns {Promise<void>} - nothing
+ */
 let handleNewConnection = async (socket) => {
     elementsInQueue = await countElementsInQueueNotConsumed(dbClient);
     console.log("ELEMENTS IN QUEUE AT START: " + elementsInQueue)
@@ -94,6 +120,11 @@ let handleNewConnection = async (socket) => {
     }
 }
 
+/**
+ * Handles a new connection to the IPC server with retry mechanism
+ * @param socket - the socket of the client
+ * @returns {Promise<void>} - nothing
+ */
 let handleNewConnectionWithRetry = async (socket) => {
     let retries = 1;
     while (true) {
@@ -109,7 +140,7 @@ let handleNewConnectionWithRetry = async (socket) => {
     }
 }
 
-
+// start the IPC server
 ipc.serve(() => {
     ipc.server.on('start', onServerStartWithRetry)
     ipc.server.on('connect', handleNewConnectionWithRetry)
@@ -118,7 +149,10 @@ ipc.serve(() => {
     })
 })
 
-
+/**
+ * Main function
+ * @returns {Promise<void>} - nothing
+ */
 let main = async () => {
     dbClient = await connectUsingMongoose()
     dbClient.on('error', (err) => {
@@ -144,14 +178,19 @@ main().catch(err => {
     // process.exit(1);
 })
 
-// perform any cleanup or finalization tasks before stopping the app
-async function cleanup() {
+/**
+ * Performs cleanup tasks before stopping the app
+ * @returns {Promise<void>}
+ */
+const cleanup = async () => {
     console.log('Performing cleanup tasks before stopping the app...');
     ipc.server.stop();
     process.exit();
 }
 
-// listen for the SIGINT signal
+/**
+ * Handles SIGINT signal
+ */
 process.on('SIGINT', function() {
     console.log('Received SIGINT signal, stopping the app...');
     cleanup().catch(err => {

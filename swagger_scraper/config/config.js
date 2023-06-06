@@ -1,30 +1,27 @@
-const priorities = {
+/**
+ * This file contains the configuration for the application.
+ */
+
+// priorities is used to configure the priorities of the urls.
+exports.priorities = {
     HIGH: 0,
     MEDIUM: 1,
     LOW: 2
 }
 
-const workerPoolConfig = {
+// workerPoolConfig is used to configure the worker pool.
+exports.workerPoolConfig = {
     minWorkers: 1,
     maxWorkers: 5,
 }
 
-const ipcConfigClient = {
+// ipcConfig is used to configure the IPC.
+exports.ipcConfig = {
     id: 'world',
     retry: 1500,
     maxRetries: 1000000,
     silent: true,
 }
 
-const ipcConfigServer = {
-    id: 'world',
-    retry: 1500,
-    maxRetries: 1000000,
-}
-
-module.exports = {
-    priorities,
-    ipcConfigClient,
-    ipcConfigServer,
-    workerPoolConfig,
-}
+// Tor proxy configuration.
+exports.TOR_PROXY = process.env.TOR_PROXY || 'socks5://127.0.0.1:9050';

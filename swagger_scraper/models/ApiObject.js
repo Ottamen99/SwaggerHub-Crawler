@@ -1,4 +1,43 @@
+/**
+ * Class representing an API object of document in "apis" collection in MongoDB.
+ * @class ApiObject
+ * @property {object} _id - The reference to the API object.
+ * @property {object} _meta - The reference to the API object.
+ * @property {object} _name - The reference to the API object.
+ * @property {object} _description - The reference to the API object.
+ * @property {object} _created_at - The reference to the API object.
+ * @property {object} _last_modified - The reference to the API object.
+ * @property {object} _created_by - The reference to the API object.
+ * @property {object} _API_url - The reference to the API object.
+ * @property {object} _version - The reference to the API object.
+ * @property {object} _OPENAPI_version - The reference to the API object.
+ * @property {object} _API_spec - The reference to the API object.
+ * @property {object} _API_spec_hash - The reference to the API object.
+ * @property {object} _API_url_hash - The reference to the API object.
+ * @property {object} _fetching_reference - The reference to the API object.
+ * @property {object} _API_reference - The reference to the API object.
+ */
 class ApiObject {
+
+    _id = null;
+    _fetching_reference = null;
+    _API_reference = null;
+    _meta = {
+        server: {},
+        is_valid_JSON_spec: null,
+    }
+    _name = null;
+    _description = null;
+    _created_at = null;
+    _last_modified = null;
+    _created_by = null;
+    _API_url = null;
+    _version = null;
+    _OPENAPI_version = null;
+    _API_spec = {}
+    _API_spec_hash = null;
+    _API_url_hash = null;
+
     get fetching_reference() {
         return this._fetching_reference;
     }
@@ -127,25 +166,6 @@ class ApiObject {
     set API_spec_hash(value) {
         this._API_spec_hash = value;
     }
-    _id = null;
-    _fetching_reference = null;
-    _API_reference = null;
-    _meta = {
-        server: {},
-        is_valid_JSON_spec: null,
-    }
-    _name = null;
-    _description = null;
-    _created_at = null;
-    _last_modified = null;
-    _created_by = null;
-    _API_url = null;
-    _version = null;
-    _OPENAPI_version = null;
-    _API_spec = {}
-    _API_spec_hash = null;
-
-    _API_url_hash = null;
 }
 
 module.exports = {ApiObject}

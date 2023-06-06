@@ -1,50 +1,45 @@
-const config = require('./dbConfig')
 const {ObjectId} = require("mongodb");
-
-// list all databases
-exports.getDatabases = async (client) => {
-    return await client.db.admin().listDatabases();
-}
-
 
 // ====================== API COLLECTION ======================
 
-// add new api to the database
+/**
+ * Add an API to the database
+ * @param client - the database client
+ * @param newApi - the API to add
+ * @returns {Promise<*>} - the result of the insertion
+ */
 exports.addAPI = async (client, newApi) => {
     return await client.db.collection('apis').insertOne(newApi);
 }
 
-// add multiple apis to the database
-exports.addAPIs = async (client, newApis) => {
-    return await client.db.collection('apis').insertMany(newApis);
-}
-
-// get all apis from the database
-exports.getAPIs = async (client) => {
-    return await client.db.collection('apis').find().toArray();
-}
-
-// get an api from the database by its API_url_hash
+/**
+ * Get an API from the database by its API_url_hash
+ * @param client - the database client
+ * @param API_url_hash - the API_url_hash of the API to get
+ * @returns {Promise<*>} - the API
+ */
 exports.getAPI = async (client, API_url_hash) => {
     return await client.db.collection('apis').findOne({_API_url_hash: API_url_hash});
 }
 
-// truncate the database
-exports.truncate = async (client) => {
-    return await client.db.collection('apis').deleteMany({});
-}
-
-// update an api in the database, it finds the api by its API_url_hash
+/**
+ * Update an API in the database
+ * @param client - the database client
+ * @param filter - the filter to apply
+ * @param newApi - the new API
+ * @returns {Promise<*>} - the result of the update
+ */
 exports.updateAPI = async (client, filter, newApi) => {
     const options = { upsert: false};
     return await client.db.collection('apis').updateOne(filter, { $set: newApi }, options).catch(err => console.log(err));
 }
 
-exports.updateFetchingRefAPI = async (client, filter, newMeta) => {
-    const options = { upsert: false};
-    return await client.db.collection('apis').updateOne(filter, { $set: {_meta: newMeta} }, options);
-}
-
+/**
+ * Get the last updated API from the database
+ * @param client - the database client
+ * @param API_url_hash - the API_url_hash of the API to get
+ * @returns {Promise<*>} - the API
+ */
 exports.getLastUpdatedApi = async (client, API_url_hash) => {
     return await client.db.collection('apis').find({ _API_url_hash: API_url_hash })
         .sort({ updatedAt: -1 })
@@ -57,73 +52,74 @@ exports.getLastUpdatedApi = async (client, API_url_hash) => {
 
 // ====================== URL COLLECTION ======================
 
-exports.addURL = async (client, newUrl) => {
-    return await client.db.collection('urls').insertOne(newUrl);
-}
-
-exports.addURLs = async (client, newUrls) => {
-    return await client.db.collection('urls').insertMany(newUrls);
-}
-
-exports.getURLs = async (client) => {
-    return await client.db.collection('urls').find().toArray();
-}
-
+/**
+ * Add an URL to the database
+ * @param client - the database client
+ * @param url - the URL to add
+ * @returns {Promise<*>} - the result of the insertion
+ */
 exports.getURL = async (client, url) => {
     return await client.db.collection('urls').findOne({_url: url})
 }
 
-exports.truncateURLs = async (client) => {
-    return await client.db.collection('urls').deleteMany({});
-}
-
+/**
+ * Update an URL in the database
+ * @param client - the database client
+ * @param filter - the filter to apply
+ * @param newUrl - the new URL
+ * @returns {Promise<*>} - the result of the update
+ */
 exports.updateURL = async (client, filter, newUrl) => {
     const options = { upsert: false};
     return await client.db.collection('urls').updateOne(filter, { $set: newUrl }, options);
 }
 
-exports.getUrlIfExists = async (client, url) => {
-    return await client.db.collection('urls').findOne({_url: url})
-}
-
-
 // ====================== FETCH COLLECTION ======================
 
+/**
+ * Add a fetch to the database
+ * @param client - the database client
+ * @param newFetch - the fetch to add
+ * @returns {Promise<*>} - the result of the insertion
+ */
 exports.addFetch = async (client, newFetch) => {
     return await client.db.collection('fetches').insertOne(newFetch);
 }
 
-exports.addFetches = async (client, newFetches) => {
-    return await client.db.collection('fetches').insertMany(newFetches);
-}
-
-exports.getFetches = async (client) => {
-    return await client.db.collection('fetches').find().toArray();
-}
-
-exports.removeElementFromQueue = async (client, elem) => {
-    return await client.db.collection('queue').deleteOne({_id: new ObjectId(elem._id)});
-}
-
+/**
+ * Count number of fetches in the database that are not consumed
+ * @param client - the database client
+ * @returns {Promise<*>} - the number of fetches
+ */
 exports.countElementsInQueueNotConsumed = async (client) => {
     return await client.db.collection('queue').countDocuments({consumed:null});
-    // return QueueModel.countDocuments({consumed: null});
 }
 
-exports.getQueueCursor = async (client) => {
-    // await new Promise(resolve => setTimeout(resolve, 2000))
-    return client.db.collection('queue').find({consumed:null})
-}
-
-
+/**
+ * Flag a queue element as consumed
+ * @param client - the database client
+ * @param elem - the element to flag
+ * @returns {Promise<void>} - nothing
+ */
 exports.flagConsumeElement = async (client, elem) =>{
     await client.db.collection('queue').updateOne({_id: new ObjectId(elem._id)},{$set: {consumed:true}} )
 }
 
+/**
+ * Get all the queue elements that are not consumed
+ * @param client - the database client
+ * @returns {Promise<*>} - the queue elements
+ */
 exports.getQueueElementsNotConsumed = async (client) => {
     return await client.db.collection('queue').find({consumed:null}).toArray();
 }
 
+/**
+ * Get element that needs to be checked after reconnecting to the database
+ * @param client - the database client
+ * @param elem - the element to get
+ * @returns {Promise<*>} - the element
+ */
 exports.getElementToCheck = async (client, elem) => {
-    return await client.db.collection('urls').find({_id: new ObjectId(elem._id)})
+    return await client.db.collection('urls').findOne({_id: new ObjectId(elem._id)})
 }
