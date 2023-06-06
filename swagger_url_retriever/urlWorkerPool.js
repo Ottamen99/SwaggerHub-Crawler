@@ -2,7 +2,7 @@ const {connectUsingMongoose, closeConnection} = require("./db/mongoConnector");
 const {ipcConfigServer, workerPoolNewUrlsConfig, workerPoolKnownUrlsConfig} = require("./config/config");
 const ipc = require('node-ipc').default;
 const Piscina = require('piscina');
-const {getAPIProxyById, getMaxProcessed, getMinProcessed, getUnprocessed, getProcessed} = require("./db/databaseManager");
+const {getMinProcessed, getUnprocessed} = require("./db/databaseManager");
 const {ObjectId} = require("mongodb");
 
 
