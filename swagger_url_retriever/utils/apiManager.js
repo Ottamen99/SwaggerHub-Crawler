@@ -3,7 +3,12 @@ const { ApiObject } = require("../models/ApiObject");
 const databaseManager = require("../db/databaseManager");
 const utilityFunction = require("./utilityFunctions");
 
-const createAPIObject = (api) => {
+/**
+ * Create a new ApiObject from raw metadata
+ * @param api - raw metadata
+ * @returns {ApiObject} - new ApiObject
+ */
+exports.createAPIObject = (api) => {
     let apiObject = new ApiObject();
     apiObject.API_reference = utilityFunction.getBaseURL(api.properties[0].url);
     apiObject.name = api.name;
@@ -18,20 +23,16 @@ const createAPIObject = (api) => {
     return apiObject;
 }
 
-// create new entry on the database
-const addAPI = async (client, apiObject) => {
-    const apiExists = await databaseManager.getAPI(client, apiObject.API_url_hash);
-    if (apiExists) {
-        // console.log(`API ${apiObject.name} already exists in the database`);
-    } else {
-        const result = await databaseManager.addAPI(client, apiObject);
-        // console.log(`API ${apiObject.name} added to the database with the following id: ${result.insertedId}`);
-    }
-}
-
-const updateApis = async (client, apiObjects) => {
+/**
+ * Insert new apis in the database if they are not already there
+ * @param client - database client
+ * @param apiObjects - list of apis
+ * @returns {Promise<void>} - void
+ */
+exports.insertApisInDb = async (client, apiObjects) => {
     // keep only apis that are not in the database
     const apiObjectsToInsert = [];
+    // TODO: use projection to get only the API_url_hash field
     for (let i = 0; i < apiObjects.length; i++) {
         const apiExists = await databaseManager.getAPI(client, apiObjects[i].API_url_hash);
         if (!apiExists) {
@@ -42,10 +43,4 @@ const updateApis = async (client, apiObjects) => {
     if (apiObjectsToInsert.length > 0) {
         await databaseManager.addAPIs(client, apiObjectsToInsert);
     }
-}
-
-module.exports = {
-    createAPIObject,
-    addAPI,
-    updateApis
 }

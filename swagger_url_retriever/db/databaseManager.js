@@ -83,7 +83,7 @@ exports.getAllAPIProxy = async (client) => await client.db.collection('proxyUrls
  * @param id - the id of the proxy url
  * @returns {Promise<awaited Promise<ResultType | void> | Promise<ResultType | void> | Promise<any>>} - the result of the update
  */
-exports.updateAPIProxy = async (client, id) => {
+exports.increaseProcessed = async (client, id) => {
     const options = { upsert: false };
     return await client.db.collection('proxyUrls')
         .updateOne({_id: new ObjectId(id)}, { $inc: { processed: 1 } }, options)

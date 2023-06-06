@@ -3,7 +3,7 @@ const apiManager = require("./utils/apiManager");
 const databaseManager = require('./db/databaseManager');
 const {UrlObject} = require("./models/UrlObject");
 const {parseOwner} = require("./utils/utilityFunctions");
-const {updateApis} = require("./utils/apiManager");
+const {insertApisInDb} = require("./utils/apiManager");
 const {connectUsingMongoose, closeConnection} = require("./db/mongoConnector");
 const {setOverlapTest} = require("./db/databaseManager");
 
@@ -24,7 +24,7 @@ let getListOfUrls = (url) => {
         }).then((res) => {
             let apiObjects = res.data.apis.map(api => apiManager.createAPIObject(api));
             let urlsList = res.data.apis.map(api => api.properties[0].url);
-            updateApis(dbClient, apiObjects).then(_ => resolve(urlsList)).catch(err => reject(err))
+            insertApisInDb(dbClient, apiObjects).then(_ => resolve(urlsList)).catch(err => reject(err)) // insert new apis in database
         }).catch((err) => reject(err));
     });
 };
@@ -85,8 +85,13 @@ const insertUrlIfNotExists = async (url, proxyUrl) => {
     }
 }
 
+/**
+ * Handle disconnect from database
+ * @param incomingData - query url
+ * @returns {Promise<void>} - void
+ */
 const handleDisconnect = async (incomingData) => {
-    if (endFlag) return;
+    if (endFlag) return; // if the process is finished, do not reconnect
     console.log("Mongo disconnected")
     await closeConnection(dbClient).catch(() => console.log("Error while closing connection"));
     dbClient = await connectUsingMongoose(5000, true);
@@ -95,34 +100,47 @@ const handleDisconnect = async (incomingData) => {
         await new Promise(resolve => setTimeout(resolve, 100));
     }
     dbClient.on('disconnected', () => handleDisconnect(incomingData));
+
+    // retrieve urls from SwaggerHub API Proxy query
     await retrieveURLs(incomingData);
 }
 
+/**
+ * Retrieve urls from SwaggerHub API Proxy and insert them in database
+ * @param incomingUrl - query url
+ * @returns {Promise<void>} - void
+ */
 const retrieveURLs = async (incomingUrl) => {
-    let requestCounter = 0
     let urls = await getListOfUrls(incomingUrl.query);
     // get count of urls
     let countForAnApiProxy = urls.length
     for (const url of urls) {
         await insertUrlIfNotExists(url, incomingUrl.query)
-        requestCounter++
     }
     // get percentage of urls already in db
     let percentage = (alreadyInDbCounter / countForAnApiProxy) * 100
     console.log(`Percentage of already existing URLs: ${percentage}% for ${incomingUrl.query}`)
+    await databaseManager.increaseProcessed(dbClient, incomingUrl._id)
     alreadyInDbCounter = 0
-    await databaseManager.updateAPIProxy(dbClient, incomingUrl._id)
-    endFlag = true;
+    endFlag = true; // the process is finished
     await closeConnection(dbClient).catch(() => console.log("Error while closing connection"));
 }
 
+/**
+ * Main function
+ * @param incomingUrl - query url
+ * @returns {Promise<void>} - void
+ */
 module.exports = async ({incomingUrl}) => {
     incomingUrl = JSON.parse(incomingUrl)
     endFlag = false
+    // connect to database
     dbClient = await connectUsingMongoose(5000, true);
     dbClient.on('error', (err) => {
         console.log("Something went wrong with mongo: " + err.message)
     })
     dbClient.on('disconnected', () => handleDisconnect(incomingUrl));
+
+    // retrieve urls from SwaggerHub API Proxy query
     await retrieveURLs(incomingUrl).catch(err => console.log(err));
 }
