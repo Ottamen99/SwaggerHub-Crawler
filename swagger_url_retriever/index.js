@@ -62,7 +62,7 @@ let main = async () => {
     }
     let iteration = 0;
     while (iteration < 1) {
-        await urlRetriever.retrieveURLs(dbClient).catch(err => () => {l            // if is a cursor error, retry
+        await urlRetriever.retrieveURLs(dbClient).catch(err => () => {            // if is a cursor error, retry
             if (err.message.includes('cursor')) {
                 console.log('Retrying...')
                 urlRetriever.retrieveURLs(dbClient)
@@ -77,21 +77,3 @@ main().then(() => {
     console.log('Finished');
     process.exit(0);
 })
-//     .then(() => {
-//     console.log('Finished');
-//     process.exit(0);
-// }).catch(async (err) => {
-//     let retries = 1;
-//     while (true) {
-//         try {
-//             await main()
-//             console.log('Main finished');
-//             return;
-//         } catch (err) {
-//             console.log(err)
-//             console.log(`MAIN failed (retrying in ${RETRY_DELAY_MS}ms) attempts ${retries}`);
-//             retries++;
-//             await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
-//         }
-//     }
-// })
