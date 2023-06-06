@@ -1,3 +1,7 @@
+/**
+ * Query parameters
+ */
+
 exports.sort_by = ['CREATED', "UPDATED", "NAME", "OWNER"]
 exports.order = ['ASC', "DESC"]
 exports.limit = 100
