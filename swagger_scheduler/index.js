@@ -8,12 +8,6 @@ const {connectUsingMongoose, closeConnection} = require("./db/mongoConnector");
 const tqdm = require('tqdm');
 const {ObjectId} = require("mongodb");
 
-
-tr.setTorAddress('127.0.0.1', 9050);
-tr.TorControlPort.host = '127.0.0.1';
-tr.TorControlPort.port = 9051;
-tr.TorControlPort.password = 'password';
-
 let fetchCounter = 0;
 let allQueue = 0
 let dbClient;
