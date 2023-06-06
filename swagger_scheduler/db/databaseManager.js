@@ -1,102 +1,12 @@
-const {fetchLimitSize} = require("../config/config");
-
-// list all databases
-exports.getDatabases = async (client) => {
-    return await client.db.admin().listDatabases();
-}
-
-
-// ====================== API COLLECTION ======================
-
-// add new api to the database
-exports.addAPI = async (client, newApi) => {
-    return await client.db.collection('apis').insertOne(newApi);
-}
-
-// get an api from the database by its API_url_hash
-exports.getAPI = async (client, API_url_hash) => {
-    return await client.db.collection('apis').findOne({_API_url_hash: API_url_hash});
-}
-
 // ====================== URL COLLECTION ======================
 
-exports.addURL = async (client, newUrl) => {
-    return await client.db.collection('urls').insertOne(newUrl);
-}
-
-exports.addURLs = async (client, newUrls) => {
-    return await client.db.collection('urls').insertMany(newUrls);
-}
-
-exports.getURLs = async (client) => {
-    return await client.db.collection('urls').find().toArray();
-}
-
-exports.getURL = async (client, url) => {
-    return await client.db.collection('urls').findOne({_url: url})
-}
-
-exports.truncateURLs = async (client) => {
-    return await client.db.collection('urls').deleteMany({});
-}
-
-exports.updateURL = async (client, filter, newUrl) => {
-    const options = { upsert: false};
-    return await client.db.collection('urls').updateOne(filter, { $set: newUrl }, options);
-}
-
-exports.getUrlIfExists = async (client, url) => {
-    return await client.db.collection('urls').findOne({_url: url})
-}
-
-// ====================== APIPROXY COLLECTION ======================
-
-exports.addAPIProxy = async (client, newAPIProxy) => {
-    return await client.db.collection('proxyUrls').insertOne(newAPIProxy);
-}
-
-exports.addAPIProxies = async (client, newAPIProxies) => {
-    return await client.db.collection('proxyUrls').insertMany(newAPIProxies);
-}
-
-// check if exists
-exports.getAPIProxy = async (client, query) => {
-    return await client.db.collection('proxyUrls').findOne({query: query})
-}
-
-exports.getAPIProxyCursor = (client) => {
-    return client.db.collection('proxyUrls').find();
-}
-
-exports.addNewOwner = async (client, newOwner) => {
-    return await client.db.collection('owners').insertOne(newOwner);
-}
-
-exports.addNewOwners = async (client, newOwners) => {
-    return await client.db.collection('owners').insertMany(newOwners);
-}
-
-exports.getOwnerIfExists = async (client, name) => {
-    return await client.db.collection('owners').findOne({name: name})}
-
-exports.insertNewQueueElement = async (client, newQueueElement) => {
-    return await client.db.collection('queue').insertOne(newQueueElement);
-}
-
-exports.insertNewQueueElements = async (client, newQueueElements) => {
-    if (newQueueElements.length === 0) return;
-    return await client.db.collection('queue').insertMany(newQueueElements);
-}
-
-exports.getURLsCursor = (client) => {
-    return client.db.collection('urls').find();
-}
-
-// get all urls from the database
-exports.getURLs = async (client) => {
-    return await client.db.collection('urls').find().toArray();
-}
-
+/**
+ * Gets all new URLs from the database (i.e. URLs that have not been fetched yet)
+ * @param client - the connection object
+ * @param fetchLimit - the maximum number of URLs to fetch
+ * @param offset - the offset to start fetching from
+ * @returns {Promise<*>} - a promise that resolves to an array of URLs
+ */
 exports.getAllNewURLs = async (client, fetchLimit, offset) => {
     return await client.db.collection('urls').aggregate([
         { $sort: { _id: 1 } },
@@ -106,6 +16,13 @@ exports.getAllNewURLs = async (client, fetchLimit, offset) => {
     ]).toArray()
 }
 
+/**
+ * Gets all Known URLs from the database (i.e. URLs that have been fetched at least once)
+ * @param client - the connection object
+ * @param fetchLimit - the maximum number of URLs to fetch
+ * @param offset - the offset to start fetching from
+ * @returns {Promise<*>} - a promise that resolves to an array of URLs
+ */
 exports.getAllKnownURLs = async (client, fetchLimit, offset) => {
     return await client.db.collection('urls').aggregate([
         { $sort: { _fetch_counter: 1 } },
@@ -115,41 +32,94 @@ exports.getAllKnownURLs = async (client, fetchLimit, offset) => {
     ]).toArray()
 }
 
-// check if element is in the queue by urlObject
-exports.getQueueElement = async (client, urlHash) => {
-    return await client.db.collection('queue').findOne({ API_url_hash: urlHash })
-}
-
+/**
+ * Gets the sum of all fetch counters
+ * @param client - the connection object
+ * @returns {Promise<*>} - a promise that resolves to the sum of all fetch counters
+ */
 exports.checkNumberOfFetchedAPIs = async (client) => {
     return await client.db.collection('urls').aggregate([{$group: {_id: null, total: {$sum: "$_fetch_counter"}}}]).toArray();
 }
 
-exports.countElementsInQueue = async (client) => {
-    return await client.db.collection('queue').countDocuments({consumed: null});
-}
-
-exports.countAllInQueue = async (client) => {
-    return await client.db.collection('queue').countDocuments();
-}
-
-exports.flushQueue = async (client) => {
-    return await client.db.collection('queue').deleteMany({consumed: null});
-}
-
-// count urls in the database
+/**
+ * Counts the number of URLs in the database
+ * @param client - the connection object
+ * @returns {Promise<*>} - a promise that resolves to the number of URLs in the database
+ */
 exports.countURLs = async (client) => {
     return await client.db.collection('urls').countDocuments();
 }
 
-// count consumed urls in the database
+// ====================== QUEUE COLLECTION ======================
+
+/**
+ * Inserts new elements in the queue
+ * @param client - the connection object
+ * @param newQueueElements - the new elements to insert
+ * @returns {Promise<*>} - a promise that resolves to the result of the insertion
+ */
+exports.insertNewQueueElements = async (client, newQueueElements) => {
+    if (newQueueElements.length === 0) return;
+    return await client.db.collection('queue').insertMany(newQueueElements);
+}
+
+/**
+ * Get element from the queue
+ * @param client - the connection object
+ * @param urlHash - the hash of the URL to get
+ * @returns {Promise<*>} - a promise that resolves to the element from the queue
+ */
+exports.getQueueElement = async (client, urlHash) => {
+    return await client.db.collection('queue').findOne({ API_url_hash: urlHash })
+}
+
+/**
+ * Counts not consumed elements in the queue
+ * @param client - the connection object
+ * @returns {Promise<*>} - a promise that resolves to the number of not consumed elements in the queue
+ */
+exports.countElementsInQueue = async (client) => {
+    return await client.db.collection('queue').countDocuments({consumed: null});
+}
+
+/**
+ * Counts all elements in the queue
+ * @param client - the connection object
+ * @returns {Promise<*>} - a promise that resolves to the number of all elements in the queue
+ */
+exports.countAllInQueue = async (client) => {
+    return await client.db.collection('queue').countDocuments();
+}
+
+/**
+ * Counts consumed elements in the queue
+ * @param client - the connection object
+ * @returns {Promise<*>} - a promise that resolves to the number of consumed elements in the queue
+ */
 exports.countConsumedURLs = async (client) => {
     return await client.db.collection('queue').countDocuments({consumed: true});
 }
 
+// ====================== EVOLUTION COLLECTIONS ======================
+
+/**
+ * Inserts a new element in the urlsEvolution collection
+ * @param client - the connection object
+ * @param timestamp - the timestamp of the element
+ * @param urlCount - the number of URLs at the timestamp
+ * @returns {Promise<*>} - a promise that resolves to the result of the insertion
+ */
 exports.insertUrlEvolution = async (client, timestamp, urlCount) => {
     return await client.db.collection('urlsEvolution').insertOne({timestamp: timestamp, urlCount: urlCount});
 }
 
+/**
+ * Inserts a new element in the apisEvolution collection
+ * @param client - the connection object
+ * @param timestamp - the timestamp of the element
+ * @param consumedUrlsCount - the number of consumed URLs at the timestamp
+ * @returns {Promise<*>} - a promise that resolves to the result of the insertion
+ */
 exports.insertConsumedUrlEvolution = async (client, timestamp, consumedUrlsCount) => {
     return await client.db.collection('apisEvolution').insertOne({timestamp: timestamp, consumedUrlsCount: consumedUrlsCount});
 }

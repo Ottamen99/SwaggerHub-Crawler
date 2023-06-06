@@ -1,7 +1,13 @@
 const config = require('./dbConfig')
 const mongoose = require('mongoose');
 
-let connectUsingMongoose = async (retryInterval = 5000) => {
+/**
+ * Connects to MongoDB using mongoose
+ * @param retryInterval - the interval between connection attempts
+ * @param silent - if true, no messages will be printed to the console
+ * @returns {Promise<*>} - the connection object
+ */
+exports.connectUsingMongoose = async (retryInterval = 5000, silent = false) => {
     let attempt = 1;
     while (true) {
         try {
@@ -12,7 +18,8 @@ let connectUsingMongoose = async (retryInterval = 5000) => {
                 serverSelectionTimeoutMS: 250,
                 directConnection: true,
             }).asPromise()
-            console.log('Connected to MongoDB');
+            if (!silent)
+                console.log('Connected to MongoDB');
             return conn;
         } catch (err) {
             // catching initial connection error
@@ -22,9 +29,10 @@ let connectUsingMongoose = async (retryInterval = 5000) => {
         attempt++;
     }
 }
-let closeConnection = async (client) => {
-    await client.close({ force: true })
-}
 
-module.exports.connectUsingMongoose = connectUsingMongoose;
-module.exports.closeConnection = closeConnection;
+/**
+ * Closes the connection to MongoDB
+ * @param client - the connection object
+ * @returns {Promise<void>} - a promise that resolves when the connection is closed
+ */
+exports.closeConnection = async (client) => await client.close({ force: true });
