@@ -1,4 +1,4 @@
-exports.sort_by = ['BEST_MATCH']
+exports.sort_by = ['CREATED', "UPDATED", "NAME", "OWNER"]
 exports.order = ['ASC', "DESC"]
 exports.limit = 100
 exports.pages = 100
