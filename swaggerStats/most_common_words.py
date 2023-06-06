@@ -88,5 +88,7 @@ plt.tight_layout()
 # with open('most_common_words.json', 'w') as f:
 #     json.dump(most_common, f)
 
+# save the plot as a svg file
+plt.savefig('most_common_words.svg', dpi=500, bbox_inches='tight', format='svg')
 
 plt.show()

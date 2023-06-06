@@ -61,6 +61,9 @@ plt.ylabel("Density")
 plt.title("Density Plot of Overlap Count")
 plt.xlim((mean - 3 * std) - 100, (mean + 3 * std) + 100)
 plt.legend(["Density", "Mean", "3 Sigma"])
+
+# save the plot as a svg file
+plt.savefig('gaussian_overlap.svg', dpi=500, bbox_inches='tight', format='svg')
 plt.show()
 
 # print percentage of overlap count less than +3 sigma
@@ -86,7 +89,7 @@ sns.heatmap(pivot_table, cmap="mako_r", annot=False, fmt="d", linecolor="grey", 
 # make the plot fit the window
 plt.tight_layout()
 plt.title("Heatmap of Overlap Count")
-plt.savefig('heatmap.png', dpi=500, bbox_inches='tight')
+plt.savefig('heatmap.svg', dpi=500, bbox_inches='tight', format='svg')
 plt.show()
 # save the picture
 
