@@ -1,6 +1,6 @@
 const dbManager = require("../db/databaseManager.js");
 const queryConfig = require('../config/queries')
-const {BASE_SWAGGER_PROXY_URL} = require("../config/constants");
+const {BASE_SWAGGER_PROXY_URL} = require("../config/config");
 const {pages} = require("../config/queries");
 
 exports.generateQuery = async (client, { ...restParams } = {}) =>{

@@ -1,36 +1,37 @@
-// Kafka config
 const PRIORITIES = {
     HIGH: 0,
     MEDIUM: 1,
     LOW: 2
 }
 
-const workerPoolNewUrlsConfig = {
-    minWorkers: 1,
-    maxWorkers: 5,
+/**
+ * The configuration for the worker pools
+ * @type {{knownUrls: {maxWorkers: number, minWorkers: number}, newUrls: {maxWorkers: number, minWorkers: number}}}
+ */
+exports.workerPoolConfig = {
+    newUrls: {
+        minWorkers: 1,
+        maxWorkers: 5,
+    },
+    knownUrls: {
+        minWorkers: 1,
+        maxWorkers: 5,
+    }
 }
 
-const workerPoolKnownUrlsConfig = {
-    minWorkers: 1,
-    maxWorkers: 5,
-}
-
-const ipcConfigClient = {
+/**
+ * The configuration for the IPC
+ * @type {{maxRetries: number, silent: boolean, id: string, retry: number}}
+ */
+exports.ipcConfig = {
     id: 'generation',
     retry: 1500,
     maxRetries: 1000000,
     silent: true,
 }
 
-const ipcConfigServer = {
-    id: 'generation',
-    retry: 1500,
-    maxRetries: 1000000,
-}
-
-module.exports = {
-    ipcConfigClient,
-    ipcConfigServer,
-    workerPoolNewUrlsConfig,
-    workerPoolKnownUrlsConfig,
-}
+/**
+ * Base URL for the SwaggerHub API
+ * @type {string}
+ */
+exports.BASE_SWAGGER_PROXY_URL = "https://app.swaggerhub.com/apiproxy/specs?specType=API&limit=100&";

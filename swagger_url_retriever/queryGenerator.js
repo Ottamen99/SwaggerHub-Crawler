@@ -1,15 +1,15 @@
 const ipc = require('node-ipc').default;
-const {ipcConfigClient, workerPoolConfig} = require("./config/config");
+const {ipcConfig} = require("./config/config");
 const {generateQuery, pushQueryInDatabase} = require("./utils/queryManager");
 const {connectUsingMongoose, closeConnection} = require("./db/mongoConnector");
 const {sort_by, order, specification, state, query} = require("./config/queries");
 const tqdm = require("tqdm");
 const {getOwnersNames} = require("./db/databaseManager");
 
-ipc.config.id = ipcConfigClient.id;
-ipc.config.retry = ipcConfigClient.retry;
-ipc.config.maxRetries = ipcConfigClient.maxRetries;
-ipc.config.silent = ipcConfigClient.silent;
+ipc.config.id = ipcConfig.id;
+ipc.config.retry = ipcConfig.retry;
+ipc.config.maxRetries = ipcConfig.maxRetries;
+ipc.config.silent = ipcConfig.silent;
 
 let dbClient
 let queries = []

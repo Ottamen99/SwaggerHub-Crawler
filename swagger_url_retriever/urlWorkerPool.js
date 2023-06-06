@@ -1,27 +1,26 @@
 const {connectUsingMongoose, closeConnection} = require("./db/mongoConnector");
-const {ipcConfigServer, workerPoolNewUrlsConfig, workerPoolKnownUrlsConfig} = require("./config/config");
+const {ipcConfig, workerPoolConfig} = require("./config/config");
 const ipc = require('node-ipc').default;
 const Piscina = require('piscina');
 const {getMinProcessed, getUnprocessed} = require("./db/databaseManager");
 const {ObjectId} = require("mongodb");
 
-
 const poolNewUrls = new Piscina({
     filename: __dirname + '/worker.js',
-    minThreads: workerPoolNewUrlsConfig.minWorkers,
-    maxThreads: workerPoolNewUrlsConfig.maxWorkers
+    minThreads: workerPoolConfig.newUrls.minWorkers,
+    maxThreads: workerPoolConfig.newUrls.maxWorkers
 });
 
 const poolKnownUrls = new Piscina({
     filename: __dirname + '/worker.js',
-    minThreads: workerPoolKnownUrlsConfig.minWorkers,
-    maxThreads: workerPoolKnownUrlsConfig.maxWorkers
+    minThreads: workerPoolConfig.knownUrls.minWorkers,
+    maxThreads: workerPoolConfig.knownUrls.maxWorkers
 });
 
-ipc.config.id = ipcConfigServer.id;
-ipc.config.retry = ipcConfigServer.retry;
-ipc.config.maxRetries = ipcConfigServer.maxRetries;
-ipc.config.silent = true
+ipc.config.id = ipcConfig.id;
+ipc.config.retry = ipcConfig.retry;
+ipc.config.maxRetries = ipcConfig.maxRetries;
+ipc.config.silent = ipcConfig.silent;
 
 let dbClient
 let changeStream

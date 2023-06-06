@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const {BASE_SWAGGER_PROXY_URL} = require("../config/constants");
+const {BASE_SWAGGER_PROXY_URL} = require("../config/config");
 
 // create delay function with random delay
 exports.randomDelay = (min, max) => {
